@@ -1,0 +1,287 @@
+{
+  "info": {
+    "name": "Money Assistant API Collection",
+    "description": "Complete Postman collection for all endpoints of Money Assistant Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "GET Readiness Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ready"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "POST Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aditya Sharma\",\n  \"email\": \"aditya@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aditya@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Current User (/me)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "GET List Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/transactions?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "POST Create Transaction",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/transactions",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"expense\",\n  \"amount\": 150000,\n  \"category\": \"groceries\",\n  \"description\": \"Supermarket groceries\",\n  \"date\": \"2026-10-15T10:00:00.000Z\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Salary",
+      "item": [
+        {
+          "name": "GET Salary Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/salary",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "POST Setup Salary",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/salary",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseMonthlySalary\": 10000000,\n  \"effectiveDate\": \"2026-01-01\",\n  \"currency\": \"INR\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Add Revision",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/salary/revisions",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"revisedSalary\": 12000000,\n  \"effectiveDate\": \"2026-07-01\",\n  \"notes\": \"Annual Appraisal Increment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Salary Comparison",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/salary/comparison",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "GET Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dashboard?month=2026-10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budgets",
+      "item": [
+        {
+          "name": "GET List Budgets",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/budgets?month=2026-10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "POST Create Budget",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/budgets",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"dining\",\n  \"amount\": 1000000,\n  \"month\": \"2026-10\",\n  \"alertThreshold\": 80\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Budget Alerts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/budgets/alerts?month=2026-10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Goals",
+      "item": [
+        {
+          "name": "GET List Goals",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/goals",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "POST Create Goal",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/goals",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Emergency Fund\",\n  \"targetAmount\": 5000000,\n  \"targetDate\": \"2027-12-31\",\n  \"priority\": \"high\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "GET Period Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/period?period=monthly",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "GET Category Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/categories?month=2026-10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "GET Financial Insights",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports/insights?month=2026-10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Assistant",
+      "item": [
+        {
+          "name": "POST Ask Assistant",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/assistant/ask",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How much did I spend this month?\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

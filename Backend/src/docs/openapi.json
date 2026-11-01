@@ -1,0 +1,412 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Money Assistant API",
+    "description": "Production-oriented personal finance tracking backend for tracking salary, increments, transactions, budgets, savings goals, and AI-assisted financial insights.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT access token (15m expiration)"
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "object" },
+          "meta": { "type": "object" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Invalid request payload" },
+              "details": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "API is online" }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Readiness probe",
+        "responses": {
+          "200": { "description": "Database connected and ready" },
+          "503": { "description": "Service Unavailable" }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string", "example": "Aditya Sharma" },
+                  "email": { "type": "string", "format": "email", "example": "aditya@example.com" },
+                  "password": { "type": "string", "minLength": 8, "example": "SecurePass123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Registered successfully" },
+          "409": { "description": "Email already in use" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Login and receive JWT tokens",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya@example.com" },
+                  "password": { "type": "string", "example": "SecurePass123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authenticated successfully" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "summary": "Rotate refresh token and get new access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Tokens rotated" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get authenticated user profile",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "User profile" }
+        }
+      }
+    },
+    "/transactions": {
+      "get": {
+        "summary": "List transactions with filters and pagination",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["income", "expense", "transfer", "refund"] } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of transactions" }
+        }
+      },
+      "post": {
+        "summary": "Create a new transaction",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "amount", "category", "description"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["income", "expense", "transfer", "refund"] },
+                  "amount": { "type": "integer", "description": "Amount in integer paise (e.g. 150000 = 1,500 INR)", "example": 150000 },
+                  "category": { "type": "string", "example": "groceries" },
+                  "description": { "type": "string", "example": "Supermarket purchase" },
+                  "accountId": { "type": "string" },
+                  "toAccountId": { "type": "string" },
+                  "idempotencyKey": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created transaction" }
+        }
+      }
+    },
+    "/salary": {
+      "get": {
+        "summary": "Get configured salary profile",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Salary details" } }
+      },
+      "post": {
+        "summary": "Setup base monthly salary",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["baseMonthlySalary"],
+                "properties": {
+                  "baseMonthlySalary": { "type": "integer", "example": 10000000 },
+                  "effectiveDate": { "type": "string", "format": "date" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Saved salary profile" } }
+      }
+    },
+    "/salary/revisions": {
+      "post": {
+        "summary": "Add salary increment / revision",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["revisedSalary", "effectiveDate"],
+                "properties": {
+                  "revisedSalary": { "type": "integer", "example": 12000000 },
+                  "effectiveDate": { "type": "string", "format": "date" },
+                  "notes": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Recorded salary revision" } }
+      }
+    },
+    "/salary/comparison": {
+      "get": {
+        "summary": "Compare salary growth and increment history",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Growth comparison" } }
+      }
+    },
+    "/salary/credits": {
+      "post": {
+        "summary": "Record actual salary payment received into an account",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accountId"],
+                "properties": {
+                  "accountId": { "type": "string" },
+                  "amount": { "type": "integer" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Recorded salary credit" } }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "summary": "Get consolidated financial dashboard summary",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "type": "string", "example": "2026-10" } }
+        ],
+        "responses": { "200": { "description": "Dashboard summary" } }
+      }
+    },
+    "/budgets": {
+      "get": {
+        "summary": "List category budgets with real-time utilization",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Budgets list" } }
+      },
+      "post": {
+        "summary": "Create a category budget",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["category", "amount", "month"],
+                "properties": {
+                  "category": { "type": "string", "example": "dining" },
+                  "amount": { "type": "integer", "example": 1000000 },
+                  "month": { "type": "string", "example": "2026-10" },
+                  "alertThreshold": { "type": "integer", "default": 80 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created budget" } }
+      }
+    },
+    "/budgets/alerts": {
+      "get": {
+        "summary": "Get rule-based budget alerts (warning and critical overruns)",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Active budget alerts" } }
+      }
+    },
+    "/goals": {
+      "get": {
+        "summary": "List savings goals with completion pace",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Savings goals" } }
+      },
+      "post": {
+        "summary": "Create a savings goal",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "targetAmount", "targetDate"],
+                "properties": {
+                  "name": { "type": "string", "example": "Emergency Fund" },
+                  "targetAmount": { "type": "integer", "example": 5000000 },
+                  "targetDate": { "type": "string", "format": "date" },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created goal" } }
+      }
+    },
+    "/goals/{id}/contributions": {
+      "post": {
+        "summary": "Contribute to or withdraw from a savings goal",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["contribution", "withdrawal"], "default": "contribution" },
+                  "amount": { "type": "integer", "example": 500000 },
+                  "fromAccountId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Recorded goal contribution" } }
+      }
+    },
+    "/reports/period": {
+      "get": {
+        "summary": "Time-series cash flow report",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Period report" } }
+      }
+    },
+    "/reports/categories": {
+      "get": {
+        "summary": "Category spending breakdown and month-over-month trend",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Category report" } }
+      }
+    },
+    "/reports/insights": {
+      "get": {
+        "summary": "Rule-based deterministic financial insights",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Financial insights" } }
+      }
+    },
+    "/assistant/ask": {
+      "post": {
+        "summary": "Ask the AI Financial Assistant a question",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question"],
+                "properties": {
+                  "question": { "type": "string", "example": "How much did I spend this month?" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "AI answer grounded in verified facts" } }
+      }
+    }
+  }
+}
