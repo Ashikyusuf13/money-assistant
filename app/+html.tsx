@@ -29,6 +29,9 @@ export default function Root({ children }: { children: ReactNode }) {
 }
 
 const responsiveBackground = `
+:root {
+  --css-interop-darkMode: class dark;
+}
 body {
   background-color: #fff;
 }
