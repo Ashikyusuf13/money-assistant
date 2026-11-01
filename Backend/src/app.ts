@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import { env } from './config/env';
+import { connectDatabase } from './config/database';
 import {
   errorHandler,
   notFoundHandler,
@@ -22,6 +23,16 @@ import docsRouter from './routes/docs';
 
 export function createApp(): Application {
   const app: Application = express();
+
+  // ── Database connection middleware (for Serverless / Vercel execution) ──────
+  app.use(async (_req, _res, next) => {
+    try {
+      await connectDatabase();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
 
   // ── Security headers ───────────────────────────────────────────────────────
   app.use(helmet());
@@ -55,6 +66,16 @@ export function createApp(): Application {
   // ── Global rate limiting ──────────────────────────────────────────────────
   app.use(globalRateLimiter);
 
+  // ── Root Endpoint ─────────────────────────────────────────────────────────
+  app.get('/', (_req, res) => {
+    res.json({
+      success: true,
+      app: 'Money Assistant API',
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // ── Routes ────────────────────────────────────────────────────────────────
   app.use('/api/v1', healthRouter);
   app.use('/api/v1/auth', authRouter);
@@ -76,3 +97,6 @@ export function createApp(): Application {
 
   return app;
 }
+
+const defaultApp = createApp();
+export default defaultApp;
