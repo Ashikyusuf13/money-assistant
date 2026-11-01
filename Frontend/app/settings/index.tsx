@@ -285,7 +285,7 @@ export default function SettingsScreen() {
                   Server Endpoint
                 </Text>
                 <Text className="text-[11px] font-mono text-slate-500">
-                  {currentServerUrl || 'http://10.38.224.153:5000/api/v1'}
+                  {currentServerUrl || 'https://money-assistant-backend.vercel.app/api/v1'}
                 </Text>
               </View>
             </View>

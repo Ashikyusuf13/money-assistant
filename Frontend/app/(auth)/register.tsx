@@ -154,7 +154,7 @@ export default function RegisterScreen() {
         >
           <Server size={12} color="#026ac8" />
           <Text className="text-[11px] font-mono text-slate-600 dark:text-slate-300">
-            {currentServerUrl.replace('/api/v1', '') || '10.38.224.153:5000'}
+            {currentServerUrl.replace(/^https?:\/\//, '').replace(/\/api\/v1$/, '') || 'money-assistant-backend.vercel.app'}
           </Text>
           <Text className="text-[10px] text-primary-600 font-bold ml-1">
             Change
