@@ -27,8 +27,8 @@ const envSchema = z.object({
     .string()
     .min(32)
     .default('ashikjwtkeynewrefreshkey_secure_jwt_refresh_secret_key_2026'),
-  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('365d'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('3650d'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(14).default(12),
 
   // CORS
