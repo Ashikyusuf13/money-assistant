@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, Switch, Modal, Platform } from 'react-native';
+import { View, Text, Pressable, Switch, Modal, Platform, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   ScreenWrapper,
@@ -306,11 +306,24 @@ export default function SettingsScreen() {
       />
 
       {/* ─── Edit Salary Modal ─────────────────────────── */}
-      <Modal visible={showSalaryModal} transparent animationType="slide" statusBarTranslucent>
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}>
+      <Modal
+        visible={showSalaryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSalaryModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+        >
+          <Pressable
+            className="flex-1"
+            onPress={() => setShowSalaryModal(false)}
+          />
           <View
             className="bg-white rounded-t-3xl border-t border-slate-200 px-5 pt-4"
-            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 20 }}
+            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}
           >
             <View className="items-center mb-4">
               <View className="w-10 h-1.5 rounded-full bg-slate-300" />
@@ -340,6 +353,7 @@ export default function SettingsScreen() {
               placeholder="e.g. 50,000"
               helperText="Enter your net monthly credited salary"
               containerClassName="mb-5"
+              autoFocus
             />
 
             <Button
@@ -350,7 +364,7 @@ export default function SettingsScreen() {
               iconRight={salarySuccess ? <CheckCircle2 size={18} color="#ffffff" /> : undefined}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ─── PIN Setup Modal ────────────────────────────── */}

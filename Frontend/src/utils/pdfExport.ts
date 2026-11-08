@@ -382,44 +382,74 @@ export function generateFinancialReportHTML(data: PDFReportData): string {
 </html>`;
 }
 
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { Platform, Alert } from 'react-native';
+
 /**
  * Triggers PDF export / print dialog
  */
-export function exportFinancialReportPDF(data: PDFReportData): void {
+export async function exportFinancialReportPDF(data: PDFReportData): Promise<void> {
   const html = generateFinancialReportHTML(data);
 
-  if (typeof window !== 'undefined') {
-    // Open print window
-    const printWindow = window.open('', '_blank', 'width=900,height=800');
-    if (printWindow) {
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      return;
-    }
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') {
+      const printWindow = window.open('', '_blank', 'width=900,height=800');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+        return;
+      }
 
-    // Fallback: create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
+      // Fallback: create hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
 
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(html);
-      doc.close();
-      setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+      const doc = iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(html);
+        doc.close();
         setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 3000);
-      }, 500);
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 3000);
+        }, 500);
+      }
+    }
+  } else {
+    // Native Mobile (Android & iOS)
+    try {
+      const { uri } = await Print.printToFileAsync({
+        html,
+        base64: false,
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          UTI: '.pdf',
+          mimeType: 'application/pdf',
+          dialogTitle: 'Download Certified Financial Statement PDF',
+        });
+      } else {
+        await Print.printAsync({ uri });
+      }
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      Alert.alert(
+        'PDF Export Error',
+        'Unable to generate PDF document on this device. Please try again.',
+      );
     }
   }
 }

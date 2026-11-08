@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { View, Text, TextInput, TextInputProps, Pressable, Platform } from 'react-native';
 
 interface InputProps extends TextInputProps {
@@ -19,13 +19,18 @@ export function Input({
   helperText,
   className = '',
   secureTextEntry,
+  autoFocus,
   ...props
 }: InputProps) {
+  const inputRef = useRef<any>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const isPassword = secureTextEntry !== undefined;
-  const showPassword = isPassword ? !isPasswordVisible : false;
+
+  const handleContainerPress = () => {
+    inputRef.current?.focus();
+  };
 
   return (
     <View className={`w-full ${containerClassName}`}>
@@ -38,7 +43,8 @@ export function Input({
         </Text>
       )}
 
-      <View
+      <Pressable
+        onPress={handleContainerPress}
         className={`flex-row items-center px-3.5 py-3 rounded-xl border bg-white ${
           error
             ? 'border-rose-500 bg-rose-50/20'
@@ -54,13 +60,15 @@ export function Input({
         {leftIcon && <View className="mr-2.5">{leftIcon}</View>}
 
         <TextInput
-          className={`flex-1 text-slate-900 text-sm py-0 ${className}`}
+          ref={inputRef}
+          autoFocus={autoFocus}
+          className={`flex-1 text-slate-900 text-sm py-1 ${className}`}
           placeholderTextColor="#94a3b8"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           secureTextEntry={isPassword ? !isPasswordVisible : false}
           style={[
-            { color: '#0f172a' },
+            { color: '#0f172a', minHeight: 38 },
             Platform.OS === 'web'
               ? ({ outlineStyle: 'none', borderStyle: 'none', outline: 'none' } as any)
               : undefined,
@@ -81,7 +89,7 @@ export function Input({
         )}
 
         {rightIcon && !isPassword && <View className="ml-2.5">{rightIcon}</View>}
-      </View>
+      </Pressable>
 
       {error ? (
         <Text className="text-xs font-bold text-rose-600 mt-1">{error}</Text>

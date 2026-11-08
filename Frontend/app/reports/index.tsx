@@ -7,6 +7,7 @@ import {
   ScrollView,
   Modal,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -609,11 +610,30 @@ export default function ReportsScreen() {
       )}
 
       {/* ─── Add / Edit Account Modal ───────────────────── */}
-      <Modal visible={showAddAccountModal || !!editingAccount} transparent animationType="slide" statusBarTranslucent>
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}>
+      <Modal
+        visible={showAddAccountModal || !!editingAccount}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowAddAccountModal(false);
+          setEditingAccount(null);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+        >
+          <Pressable
+            className="flex-1"
+            onPress={() => {
+              setShowAddAccountModal(false);
+              setEditingAccount(null);
+            }}
+          />
           <View
             className="bg-white rounded-t-3xl border-t border-slate-200 px-5 pt-4"
-            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 20 }}
+            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}
           >
             <View className="items-center mb-4">
               <View className="w-10 h-1.5 rounded-full bg-slate-300" />
@@ -645,6 +665,7 @@ export default function ReportsScreen() {
               value={accName}
               onChangeText={setAccName}
               containerClassName="mb-4"
+              autoFocus
             />
 
             {/* Account Type Selector */}
@@ -685,7 +706,7 @@ export default function ReportsScreen() {
               onPress={handleSaveAccount}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Delete Account Confirmation */}

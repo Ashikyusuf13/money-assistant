@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Platform,
   ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   ScreenWrapper,
@@ -202,42 +203,89 @@ export default function BudgetsScreen() {
         </View>
       )}
 
-      {/* Overall Budget Overview Card */}
-      <Card className="mb-5 p-4 bg-slate-900 border-slate-800">
-        <View className="flex-row justify-between items-baseline mb-1">
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Total Monthly Budget
+      {/* Overall Budget Overview Card - Midnight Sapphire Luxury Theme */}
+      <View
+        className="mb-5 p-5 rounded-3xl border shadow-lg"
+        style={{
+          backgroundColor: '#021838',
+          borderColor: 'rgba(56, 189, 248, 0.25)',
+          shadowColor: '#021838',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
+          elevation: 6,
+        }}
+      >
+        <View className="flex-row justify-between items-center mb-2">
+          <View className="flex-row items-center gap-1.5">
+            <PieChart size={15} color="#fbbf24" />
+            <Text
+              className="text-xs font-black uppercase tracking-widest"
+              style={{ color: '#fbbf24' }}
+            >
+              Total Monthly Budget
+            </Text>
+          </View>
+          <View
+            className={`px-2.5 py-0.5 rounded-full border ${
+              overallPct > 100
+                ? 'bg-rose-500/20 border-rose-500/40'
+                : overallPct >= 80
+                ? 'bg-amber-500/20 border-amber-500/40'
+                : 'bg-emerald-500/20 border-emerald-500/40'
+            }`}
+          >
+            <Text
+              className={`text-xs font-bold ${
+                overallPct > 100
+                  ? 'text-rose-300'
+                  : overallPct >= 80
+                  ? 'text-amber-300'
+                  : 'text-emerald-300'
+              }`}
+            >
+              {overallPct}% Spent
+            </Text>
+          </View>
+        </View>
+
+        <View className="flex-row items-baseline mb-3">
+          <Text className="text-3xl font-black text-white" style={{ color: '#ffffff' }}>
+            {formatPaise(totalSpent)}
           </Text>
-          <Text className="text-xs font-bold text-slate-300">
-            {overallPct}% Spent
+          <Text className="text-sm font-semibold ml-2" style={{ color: '#93c5fd' }}>
+            / {formatPaise(totalBudget)}
           </Text>
         </View>
 
-        <Text className="text-2xl font-black text-white">
-          {formatPaise(totalSpent)}
-          <Text className="text-sm font-medium text-slate-400">
-            {' '}/ {formatPaise(totalBudget)}
-          </Text>
-        </Text>
-
         {/* Progress bar */}
-        <View className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mt-3 mb-2">
+        <View
+          className="w-full h-3 rounded-full overflow-hidden mb-3"
+          style={{ backgroundColor: '#0f284e' }}
+        >
           <View
             className={`h-full rounded-full ${
               overallPct > 100
                 ? 'bg-rose-500'
                 : overallPct >= 80
-                ? 'bg-amber-500'
-                : 'bg-emerald-500'
+                ? 'bg-amber-400'
+                : 'bg-emerald-400'
             }`}
             style={{ width: `${Math.min(overallPct, 100)}%` }}
           />
         </View>
 
-        <Text className="text-xs text-slate-400">
-          Remaining: <Text className="font-bold text-emerald-400">{formatPaise(totalRemaining)}</Text>
-        </Text>
-      </Card>
+        <View className="flex-row justify-between items-center pt-2 border-t border-slate-800/80">
+          <Text className="text-xs font-medium" style={{ color: '#cbd5e1' }}>
+            Remaining Allowance
+          </Text>
+          <View className="flex-row items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 border border-white/10">
+            <Text className="text-xs font-black text-emerald-300" style={{ color: '#34d399' }}>
+              {formatPaise(totalRemaining)}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       {/* Category Budgets List */}
       {isLoading ? (
@@ -336,11 +384,24 @@ export default function BudgetsScreen() {
       )}
 
       {/* Add Budget Modal */}
-      <Modal visible={showAddModal} transparent animationType="slide" statusBarTranslucent>
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}>
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+        >
+          <Pressable
+            className="flex-1"
+            onPress={() => setShowAddModal(false)}
+          />
           <View
             className="bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-100"
-            style={{ paddingBottom: Platform.OS === 'ios' ? 34 : 20 }}
+            style={{ paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}
           >
             {/* Handle */}
             <View className="items-center pt-3 pb-1">
@@ -386,6 +447,7 @@ export default function BudgetsScreen() {
                 onPaiseChange={setAmountPaise}
                 helperText="Set how much you plan to spend in this category"
                 containerClassName="mb-6"
+                autoFocus
               />
 
               <Button
@@ -397,7 +459,7 @@ export default function BudgetsScreen() {
               <View className="h-4" />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Delete Confirmation Modal */}

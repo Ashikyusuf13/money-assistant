@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, Platform } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, Pressable, Platform } from 'react-native';
 import { rupeesToPaise } from '../../utils/currency';
 
 interface CurrencyInputProps {
@@ -10,6 +10,7 @@ interface CurrencyInputProps {
   placeholder?: string;
   containerClassName?: string;
   helperText?: string;
+  autoFocus?: boolean;
 }
 
 /** Format rupee amount in Indian locale: 1,00,000.50 */
@@ -39,7 +40,9 @@ export function CurrencyInput({
   placeholder = '0',
   containerClassName = '',
   helperText,
+  autoFocus = false,
 }: CurrencyInputProps) {
+  const inputRef = useRef<any>(null);
   const [rawText, setRawText] = useState(
     paiseValue > 0 ? (paiseValue / 100).toString() : '',
   );
@@ -48,12 +51,18 @@ export function CurrencyInput({
   );
   const [isFocused, setIsFocused] = useState(false);
 
+  // Sync external paiseValue updates
   useEffect(() => {
-    if (paiseValue === 0) {
-      setRawText('');
-      setDisplayText('');
+    if (!isFocused) {
+      if (paiseValue > 0) {
+        setRawText((paiseValue / 100).toString());
+        setDisplayText(formatIndianDisplay(paiseValue / 100));
+      } else {
+        setRawText('');
+        setDisplayText('');
+      }
     }
-  }, [paiseValue]);
+  }, [paiseValue, isFocused]);
 
   const handleChangeText = (text: string) => {
     const stripped = text.replace(/,/g, '').replace(/[^0-9.]/g, '');
@@ -77,6 +86,10 @@ export function CurrencyInput({
     setDisplayText(rupees > 0 ? formatIndianDisplay(rupees) : '');
   };
 
+  const handleContainerPress = () => {
+    inputRef.current?.focus();
+  };
+
   const compactLabel = getCompactLabel(paiseValue);
 
   return (
@@ -90,7 +103,8 @@ export function CurrencyInput({
         </Text>
       )}
 
-      <View
+      <Pressable
+        onPress={handleContainerPress}
         className={`flex-row items-center px-4 py-3.5 rounded-2xl border bg-white ${
           error
             ? 'border-rose-500'
@@ -109,7 +123,7 @@ export function CurrencyInput({
         }}
       >
         <Text
-          className={`text-2xl font-black mr-1 ${
+          className={`text-2xl font-black mr-1.5 ${
             isFocused ? 'text-primary-600' : 'text-slate-600'
           }`}
           style={{ color: isFocused ? '#026ac8' : '#334155' }}
@@ -118,7 +132,9 @@ export function CurrencyInput({
         </Text>
 
         <TextInput
-          className="flex-1 text-2xl font-black text-slate-900 py-0"
+          ref={inputRef}
+          autoFocus={autoFocus}
+          className="flex-1 text-2xl font-black text-slate-900 py-1"
           placeholder={placeholder}
           placeholderTextColor="#94a3b8"
           keyboardType="decimal-pad"
@@ -127,7 +143,7 @@ export function CurrencyInput({
           onFocus={handleFocus}
           onBlur={handleBlur}
           style={[
-            { color: '#0f172a', fontWeight: '900' },
+            { color: '#0f172a', fontWeight: '900', minHeight: 40 },
             Platform.OS === 'web'
               ? ({ outlineStyle: 'none', borderStyle: 'none', outline: 'none' } as any)
               : undefined,
@@ -140,7 +156,7 @@ export function CurrencyInput({
             </Text>
           </View>
         )}
-      </View>
+      </Pressable>
 
       {error ? (
         <Text className="text-xs font-bold text-rose-600 mt-1.5">{error}</Text>

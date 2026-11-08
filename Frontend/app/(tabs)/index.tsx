@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
   Pressable,
   RefreshControl,
+  BackHandler,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   ScreenWrapper,
   Card,
   Badge,
   LoadingSpinner,
   EmptyState,
+  ConfirmModal,
 } from '@/src/components/ui';
 import { useAuthStore } from '@/src/store/authStore';
 import { useDashboard } from '@/src/hooks/useDashboard';
@@ -37,6 +39,20 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr());
+  const [showExitModal, setShowExitModal] = useState(false);
+
+  // Hardware back button handler — active ONLY when Home screen tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        setShowExitModal(true);
+        return true; // Prevent default app exit
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
 
   const { data: dashboard, isLoading, isRefetching, refetch } = useDashboard(selectedMonth);
 
@@ -428,6 +444,21 @@ export default function HomeScreen() {
           </View>
         </>
       )}
+
+      {/* Android Hardware Back Press Exit Modal */}
+      <ConfirmModal
+        visible={showExitModal}
+        title="Exit Money Assistant?"
+        message="Are you sure you want to close and exit the application?"
+        confirmTitle="Exit App"
+        cancelTitle="Stay"
+        isDestructive
+        onConfirm={() => {
+          setShowExitModal(false);
+          BackHandler.exitApp();
+        }}
+        onCancel={() => setShowExitModal(false)}
+      />
     </ScreenWrapper>
   );
 }

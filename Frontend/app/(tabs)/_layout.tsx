@@ -1,4 +1,6 @@
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -8,22 +10,31 @@ import {
 } from 'lucide-react-native';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  // Safe clearance above Android gesture pill / 3-button navigation bar
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 14 : 10);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#0c87eb',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: '#026ac8',
+        tabBarInactiveTintColor: '#64748b',
         tabBarStyle: {
           backgroundColor: '#ffffff',
-          borderTopColor: '#f1f5f9',
-          height: 60,
-          paddingBottom: 8,
+          borderTopColor: '#e2e8f0',
+          height: 62 + bottomInset,
+          paddingBottom: bottomInset + 4,
           paddingTop: 8,
+          elevation: 12,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
         },
       }}
     >

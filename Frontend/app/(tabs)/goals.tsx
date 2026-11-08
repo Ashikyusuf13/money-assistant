@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ScrollView,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   ScreenWrapper,
@@ -454,11 +455,24 @@ export default function GoalsScreen() {
       )}
 
       {/* ─── Create Goal Modal ─────────────────────────── */}
-      <Modal visible={showAddModal} transparent animationType="slide" statusBarTranslucent>
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}>
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+        >
+          <Pressable
+            className="flex-1"
+            onPress={() => setShowAddModal(false)}
+          />
           <View
             className="bg-white rounded-t-3xl border-t border-slate-200"
-            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 20 }}
+            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}
           >
             {/* Handle bar */}
             <View className="items-center pt-3 pb-1">
@@ -569,15 +583,28 @@ export default function GoalsScreen() {
               <View className="h-4" />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ─── Contribution / Withdrawal Modal ──────────── */}
-      <Modal visible={!!selectedGoalForContribution} transparent animationType="slide" statusBarTranslucent>
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}>
+      <Modal
+        visible={!!selectedGoalForContribution}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedGoalForContribution(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+        >
+          <Pressable
+            className="flex-1"
+            onPress={() => setSelectedGoalForContribution(null)}
+          />
           <View
             className="bg-white rounded-t-3xl border-t border-slate-200 px-5 pt-4"
-            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 20 }}
+            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}
           >
             {/* Handle */}
             <View className="items-center mb-4">
@@ -687,7 +714,7 @@ export default function GoalsScreen() {
               onPress={handleContribute}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Delete Confirm */}
