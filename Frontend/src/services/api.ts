@@ -142,44 +142,42 @@ api.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        // Call backend refresh endpoint
-        const response = await axios.post<
-          ApiResponse<{ user: User; tokens: AuthTokens }>
-        >(`${ENV.API_BASE_URL}/auth/refresh`, {
-          refreshToken: storedRefreshToken,
-        });
+        // Call backend refresh endpoint using the active base URL
+        const currentBase = getCurrentApiBaseUrl();
+        const response = await axios.post(
+          `${currentBase}/auth/refresh`,
+          { refreshToken: storedRefreshToken },
+          { timeout: 10000 }
+        );
 
-        const newAccessToken = response.data.data.tokens.accessToken;
-        const newRefreshToken = response.data.data.tokens.refreshToken;
+        const resData = (response.data as any)?.data;
+        const newAccessToken = resData?.accessToken || resData?.tokens?.accessToken;
+        const newRefreshToken = resData?.refreshToken || resData?.tokens?.refreshToken || storedRefreshToken;
 
-        // Update in-memory & secure storage
-        setMemoryAccessToken(newAccessToken);
-        await Promise.all([
-          StorageService.saveAccessToken(newAccessToken),
-          StorageService.saveRefreshToken(newRefreshToken),
-        ]);
+        if (newAccessToken) {
+          // Update in-memory & secure storage
+          setMemoryAccessToken(newAccessToken);
+          await Promise.all([
+            StorageService.saveAccessToken(newAccessToken),
+            StorageService.saveRefreshToken(newRefreshToken),
+            StorageService.setLoggedInFlag(true),
+          ]);
 
-        // Resume queued requests
-        processQueue(null, newAccessToken);
+          // Resume queued requests
+          processQueue(null, newAccessToken);
 
-        // Retry the original request
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          // Retry the original request
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          }
+          return api(originalRequest);
         }
-        return api(originalRequest);
+
+        throw new Error('No access token returned from refresh');
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Only trigger logout if server explicitly rejected with 401 or 403
-        if (
-          axios.isAxiosError(refreshError) &&
-          (refreshError.response?.status === 401 || refreshError.response?.status === 403)
-        ) {
-          setMemoryAccessToken(null);
-          await StorageService.clearAllAuthData();
-          if (logoutCallback) {
-            logoutCallback();
-          }
-        }
+        // CRITICAL: NEVER automatically wipe auth or trigger logout on background refresh failure!
+        // The user explicitly requested that logout ONLY occurs when they tap the Logout button.
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

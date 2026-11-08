@@ -13,18 +13,25 @@ const STORAGE_KEYS = {
   APP_LOCK_TIMEOUT: 'money_assistant_app_lock_timeout',
 };
 
-// In-memory fallback
+// In-memory persistent cache across app lifetime
 const memoryStorage = new Map<string, string>();
 
-// File storage path on native mobile
-const NATIVE_STORE_FILE = `${FileSystem.documentDirectory ?? ''}money_assistant_storage.json`;
+function getStoreFilePath(): string | null {
+  if (Platform.OS === 'web') return null;
+  const base = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+  if (!base) return null;
+  const prefix = base.endsWith('/') ? base : `${base}/`;
+  return `${prefix}money_assistant_storage.json`;
+}
 
 async function readNativeFileStore(): Promise<Record<string, string>> {
-  if (Platform.OS === 'web' || !FileSystem.documentDirectory) return {};
+  if (Platform.OS === 'web') return {};
+  const filePath = getStoreFilePath();
+  if (!filePath) return {};
   try {
-    const fileInfo = await FileSystem.getInfoAsync(NATIVE_STORE_FILE);
+    const fileInfo = await FileSystem.getInfoAsync(filePath);
     if (!fileInfo.exists) return {};
-    const content = await FileSystem.readAsStringAsync(NATIVE_STORE_FILE);
+    const content = await FileSystem.readAsStringAsync(filePath);
     return JSON.parse(content) || {};
   } catch {
     return {};
@@ -32,9 +39,11 @@ async function readNativeFileStore(): Promise<Record<string, string>> {
 }
 
 async function writeNativeFileStore(data: Record<string, string>): Promise<void> {
-  if (Platform.OS === 'web' || !FileSystem.documentDirectory) return;
+  if (Platform.OS === 'web') return;
+  const filePath = getStoreFilePath();
+  if (!filePath) return;
   try {
-    await FileSystem.writeAsStringAsync(NATIVE_STORE_FILE, JSON.stringify(data));
+    await FileSystem.writeAsStringAsync(filePath, JSON.stringify(data));
   } catch (err) {
     console.warn('Failed to write native file store:', err);
   }
@@ -51,7 +60,10 @@ async function isSecureStoreAvailable(): Promise<boolean> {
 
 export const StorageService = {
   async setItem(key: string, value: string): Promise<void> {
-    // 1. Try SecureStore on Native
+    // 1. Memory cache
+    memoryStorage.set(key, value);
+
+    // 2. Try SecureStore on Native
     const available = await isSecureStoreAvailable();
     if (available) {
       try {
@@ -61,37 +73,36 @@ export const StorageService = {
       }
     }
 
-    // 2. Also write to persistent FileSystem on Native (guarantees survival across app close)
-    if (Platform.OS !== 'web' && FileSystem.documentDirectory) {
+    // 3. Persistent FileSystem on Native (guarantees survival across app close/restarts)
+    if (Platform.OS !== 'web') {
       try {
         const store = await readNativeFileStore();
         store[key] = value;
         await writeNativeFileStore(store);
-      } catch {}
+      } catch (err) {
+        console.warn('writeNativeFileStore failed:', err);
+      }
     }
 
-    // 3. Web localStorage
+    // 4. Web localStorage
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         window.localStorage.setItem(key, value);
       } catch {}
     }
-
-    // 4. Memory cache
-    memoryStorage.set(key, value);
   },
 
   async getItem(key: string): Promise<string | null> {
     // 1. Check memory cache first
     const memVal = memoryStorage.get(key);
-    if (memVal !== undefined && memVal !== null) return memVal;
+    if (memVal !== undefined && memVal !== null && memVal !== '') return memVal;
 
     // 2. Try SecureStore on Native
     const available = await isSecureStoreAvailable();
     if (available) {
       try {
         const val = await SecureStore.getItemAsync(key);
-        if (val !== null && val !== undefined) {
+        if (val !== null && val !== undefined && val !== '') {
           memoryStorage.set(key, val);
           return val;
         }
@@ -100,11 +111,11 @@ export const StorageService = {
       }
     }
 
-    // 3. Try Native FileStore fallback
-    if (Platform.OS !== 'web' && FileSystem.documentDirectory) {
+    // 3. Try Native FileStore fallback (bulletproof on Android)
+    if (Platform.OS !== 'web') {
       try {
         const store = await readNativeFileStore();
-        if (store[key] !== undefined && store[key] !== null) {
+        if (store[key] !== undefined && store[key] !== null && store[key] !== '') {
           memoryStorage.set(key, store[key]!);
           return store[key]!;
         }
@@ -115,7 +126,7 @@ export const StorageService = {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const val = window.localStorage.getItem(key);
-        if (val !== null && val !== undefined) {
+        if (val !== null && val !== undefined && val !== '') {
           memoryStorage.set(key, val);
           return val;
         }
@@ -126,7 +137,10 @@ export const StorageService = {
   },
 
   async removeItem(key: string): Promise<void> {
-    // 1. SecureStore
+    // 1. Memory cache
+    memoryStorage.delete(key);
+
+    // 2. SecureStore
     const available = await isSecureStoreAvailable();
     if (available) {
       try {
@@ -134,8 +148,8 @@ export const StorageService = {
       } catch {}
     }
 
-    // 2. Native FileStore
-    if (Platform.OS !== 'web' && FileSystem.documentDirectory) {
+    // 3. Native FileStore
+    if (Platform.OS !== 'web') {
       try {
         const store = await readNativeFileStore();
         delete store[key];
@@ -143,15 +157,12 @@ export const StorageService = {
       } catch {}
     }
 
-    // 3. Web localStorage
+    // 4. Web localStorage
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         window.localStorage.removeItem(key);
       } catch {}
     }
-
-    // 4. Memory cache
-    memoryStorage.delete(key);
   },
 
   // Token helper methods
@@ -202,8 +213,15 @@ export const StorageService = {
   },
 
   async isLoggedIn(): Promise<boolean> {
-    const val = await this.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
-    return val === 'true';
+    const flag = await this.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
+    if (flag === 'true') return true;
+    const user = await this.getItem(STORAGE_KEYS.USER_DATA);
+    if (user && user !== 'null') return true;
+    const token = await this.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    if (token && token.length > 10) return true;
+    const refresh = await this.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    if (refresh && refresh.length > 10) return true;
+    return false;
   },
 
   async clearAllAuthData(): Promise<void> {

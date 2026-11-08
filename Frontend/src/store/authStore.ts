@@ -28,15 +28,10 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  // Register automatic logout callback with API client ONLY when explicitly triggered by expired session
+  // CRITICAL: User is ONLY logged out when they explicitly click the Logout button in Settings.
+  // Never automatically log out or wipe user data on network glitches or background refresh failures.
   registerLogoutHandler(async () => {
-    await StorageService.clearAllAuthData();
-    setMemoryAccessToken(null);
-    set({
-      user: null,
-      accessToken: null,
-      isAuthenticated: false,
-    });
+    // Preserve authenticated session - no automatic logout
   });
 
   return {
@@ -138,8 +133,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
           StorageService.isLoggedIn(),
         ]);
 
-        // If user was previously logged in or has any auth tokens, preserve session!
-        if (wasLoggedIn || (storedAccessToken && storedUser) || storedRefreshToken) {
+        // If user was previously logged in or has any auth credentials, preserve session permanently!
+        if (wasLoggedIn || storedAccessToken || storedUser || storedRefreshToken) {
           const userFallback: User = storedUser || {
             id: 'current',
             name: 'Account Holder',
@@ -161,25 +156,37 @@ export const useAuthStore = create<AuthState>((set, get) => {
             isRestoringSession: false,
           });
 
-          // Quietly refresh in background if network is reachable
+          // Always ensure the logged-in flag is re-asserted in storage
+          await StorageService.setLoggedInFlag(true);
+
+          // Quietly refresh in background if network is reachable without ever logging out
           if (storedRefreshToken) {
             api
-              .post<ApiResponse<AuthResponseData>>('/auth/refresh', {
+              .post('/auth/refresh', {
                 refreshToken: storedRefreshToken,
               })
               .then(async (res) => {
-                const { user, tokens } = res.data.data;
-                setMemoryAccessToken(tokens.accessToken);
-                await Promise.all([
-                  StorageService.saveAccessToken(tokens.accessToken),
-                  StorageService.saveRefreshToken(tokens.refreshToken),
-                  StorageService.saveUser(user),
-                  StorageService.setLoggedInFlag(true),
-                ]);
-                set({ user, accessToken: tokens.accessToken });
+                const resData = (res.data as any)?.data;
+                const newAccess = resData?.accessToken || resData?.tokens?.accessToken;
+                const newRefresh = resData?.refreshToken || resData?.tokens?.refreshToken;
+                const updatedUser = resData?.user;
+
+                if (newAccess) {
+                  setMemoryAccessToken(newAccess);
+                  await StorageService.saveAccessToken(newAccess);
+                  set({ accessToken: newAccess });
+                }
+                if (newRefresh) {
+                  await StorageService.saveRefreshToken(newRefresh);
+                }
+                if (updatedUser) {
+                  await StorageService.saveUser(updatedUser);
+                  set({ user: updatedUser });
+                }
+                await StorageService.setLoggedInFlag(true);
               })
               .catch(() => {
-                // Offline or temporary failure - do NOT log out!
+                // Offline or server unavailable - NEVER log out!
               });
           }
 
@@ -189,6 +196,25 @@ export const useAuthStore = create<AuthState>((set, get) => {
         set({ isRestoringSession: false, isAuthenticated: false });
         return false;
       } catch {
+        try {
+          const wasLoggedIn = await StorageService.isLoggedIn();
+          if (wasLoggedIn) {
+            set({
+              user: {
+                id: 'current',
+                name: 'Account Holder',
+                email: 'user@finance.app',
+                currency: 'INR',
+                timezone: 'Asia/Kolkata',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              },
+              isAuthenticated: true,
+              isRestoringSession: false,
+            });
+            return true;
+          }
+        } catch {}
         set({ isRestoringSession: false, isAuthenticated: false });
         return false;
       }
