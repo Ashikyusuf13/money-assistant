@@ -241,11 +241,20 @@ export function DatePicker({
       ) : null}
 
       {/* Interactive In-App Calendar Modal */}
-      <Modal visible={showModal} transparent animationType="fade">
-        <View className="flex-1 bg-black/60 justify-center items-center p-4">
-          <View
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/60 justify-center items-center p-4"
+          onPress={() => setShowModal(false)}
+        >
+          <Pressable
             className="w-full max-w-sm bg-white rounded-3xl p-5 border border-slate-200 shadow-xl"
             style={{ backgroundColor: '#ffffff' }}
+            onPress={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <View className="flex-row items-center justify-between mb-4">
@@ -384,8 +393,8 @@ export function DatePicker({
                 </Pressable>
               ))}
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

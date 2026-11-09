@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ScreenWrapper,
-  LoadingSpinner,
+  SkeletonCard,
   ConfirmModal,
 } from '@/src/components/ui';
 import { useTransaction, useDeleteTransaction } from '@/src/hooks/useTransactions';
@@ -48,8 +48,10 @@ export default function TransactionDetailScreen() {
 
   if (isLoading) {
     return (
-      <ScreenWrapper style={styles.centerWrapper}>
-        <LoadingSpinner message="Loading transaction details..." />
+      <ScreenWrapper style={styles.wrapper}>
+        <View style={{ paddingTop: 20 }}>
+          <SkeletonCard height={380} />
+        </View>
       </ScreenWrapper>
     );
   }

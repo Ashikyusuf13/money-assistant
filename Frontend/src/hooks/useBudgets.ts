@@ -51,6 +51,27 @@ export function useCreateBudget() {
   });
 }
 
+export function useUpdateBudget() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Budget,
+    Error,
+    { id: string; amount?: number; alertThreshold?: number }
+  >({
+    mutationFn: async ({ id, ...payload }) => {
+      const response = await api.put<ApiResponse<Budget | { budget: Budget }>>(`/budgets/${id}`, payload);
+      const data = response.data.data;
+      return (data as any)?.budget ?? (data as Budget);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+}
+
 export function useDeleteBudget() {
   const queryClient = useQueryClient();
 

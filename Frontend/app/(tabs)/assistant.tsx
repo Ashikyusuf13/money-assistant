@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenWrapper, LoadingSpinner } from '@/src/components/ui';
+import { ScreenWrapper, SkeletonCard } from '@/src/components/ui';
 
 export default function AssistantRedirect() {
   const router = useRouter();
@@ -10,8 +11,11 @@ export default function AssistantRedirect() {
   }, [router]);
 
   return (
-    <ScreenWrapper className="items-center justify-center">
-      <LoadingSpinner message="Opening Financial Reports..." />
+    <ScreenWrapper className="p-6 justify-center">
+      <View style={{ gap: 14 }}>
+        <SkeletonCard height={180} />
+        <SkeletonCard height={100} />
+      </View>
     </ScreenWrapper>
   );
 }

@@ -27,14 +27,11 @@ import {
   Wallet,
   Pencil,
   CheckCircle2,
-  Server,
   Settings,
   HelpCircle,
   Info,
   Crown,
 } from 'lucide-react-native';
-import { ServerConfigModal } from '@/src/components/ServerConfigModal';
-import { getCurrentApiBaseUrl } from '@/src/services/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -52,8 +49,6 @@ export default function SettingsScreen() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [showServerModal, setShowServerModal] = useState(false);
-  const [currentServerUrl, setCurrentServerUrl] = useState('');
   const [newPin, setNewPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
 
@@ -67,10 +62,6 @@ export default function SettingsScreen() {
       setSalaryAmountPaise(salary.baseMonthlySalary);
     }
   }, [salary]);
-
-  useEffect(() => {
-    setCurrentServerUrl(getCurrentApiBaseUrl());
-  }, [showServerModal]);
 
   const handleSaveSalary = async () => {
     if (salaryAmountPaise <= 0) return;
@@ -259,24 +250,21 @@ export default function SettingsScreen() {
 
         <View style={styles.menuDivider} />
 
-        {/* App Settings / Server */}
-        <Pressable
-          onPress={() => setShowServerModal(true)}
-          style={styles.menuItem}
-        >
+        {/* App Preferences */}
+        <View style={styles.menuItem}>
           <View style={styles.menuLeft}>
             <View style={[styles.menuIconCircle, { backgroundColor: '#F3E8FF' }]}>
               <Settings size={18} color="#9333EA" />
             </View>
             <View>
-              <Text style={styles.menuTitle}>App Settings</Text>
+              <Text style={styles.menuTitle}>App Preferences</Text>
               <Text style={styles.menuSub} numberOfLines={1}>
-                {currentServerUrl.replace(/^https?:\/\//, '').replace(/\/api\/v1$/, '') || 'Server Configuration'}
+                Currency (INR ₹), notifications & cache
               </Text>
             </View>
           </View>
           <ChevronRight size={18} color="#94A3B8" />
-        </Pressable>
+        </View>
 
         <View style={styles.menuDivider} />
 
@@ -322,61 +310,78 @@ export default function SettingsScreen() {
 
       <View style={{ height: 40 }} />
 
-      {/* ─── Edit Salary Modal ─────────────────────────── */}
+      {/* ─── Edit Salary Modal (Centered) ──────────────── */}
       <Modal
         visible={showSalaryModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowSalaryModal(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
+          {/* Backdrop Tap to Close */}
           <Pressable
-            style={{ flex: 1 }}
+            style={StyleSheet.absoluteFill}
             onPress={() => setShowSalaryModal(false)}
           />
-          <View style={styles.modalSheet}>
-            <View style={styles.modalPill} />
 
-            <View style={styles.modalHeaderRow}>
-              <View>
-                <Text style={styles.modalSubheading}>MONTHLY INCOME</Text>
-                <Text style={styles.modalHeading}>Update Total Salary</Text>
+          <View style={styles.modalCenterCard}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 22 }}
+            >
+              <View style={styles.modalHeaderRow}>
+                <View>
+                  <Text style={styles.modalSubheading}>MONTHLY INCOME</Text>
+                  <Text style={styles.modalHeading}>Update Total Salary</Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowSalaryModal(false)}
+                  style={styles.closeBtn}
+                >
+                  <X size={18} color="#334155" />
+                </Pressable>
               </View>
-              <Pressable
-                onPress={() => setShowSalaryModal(false)}
-                style={styles.closeBtn}
-              >
-                <X size={18} color="#334155" />
-              </Pressable>
-            </View>
 
-            <CurrencyInput
-              label="TOTAL MONTHLY SALARY"
-              paiseValue={salaryAmountPaise}
-              onPaiseChange={setSalaryAmountPaise}
-              placeholder="e.g. 50,000"
-              helperText="Enter your net monthly credited salary"
-              containerClassName="mb-5"
-              autoFocus
-            />
+              <CurrencyInput
+                label="TOTAL MONTHLY SALARY"
+                paiseValue={salaryAmountPaise}
+                onPaiseChange={setSalaryAmountPaise}
+                placeholder="e.g. 50,000"
+                helperText="Enter your net monthly credited salary"
+                containerClassName="mb-5"
+                autoFocus
+              />
 
-            <Button
-              title={salarySuccess ? 'Saved Successfully!' : 'Save Monthly Salary'}
-              size="lg"
-              loading={setupSalaryMutation.isPending}
-              onPress={handleSaveSalary}
-              iconRight={salarySuccess ? <CheckCircle2 size={18} color="#ffffff" /> : undefined}
-            />
+              <Button
+                title={salarySuccess ? 'Saved Successfully!' : 'Save Monthly Salary'}
+                size="lg"
+                loading={setupSalaryMutation.isPending}
+                onPress={handleSaveSalary}
+                iconRight={salarySuccess ? <CheckCircle2 size={18} color="#ffffff" /> : undefined}
+              />
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ─── PIN Setup Modal ────────────────────────────── */}
-      <Modal visible={showPinModal} transparent animationType="fade">
+      {/* ─── PIN Setup Modal (Centered) ─────────────────── */}
+      <Modal
+        visible={showPinModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPinModal(false)}
+      >
         <View style={styles.pinModalOverlay}>
+          {/* Backdrop Tap to Close */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowPinModal(false)}
+          />
+
           <View style={styles.pinModalCard}>
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <View style={styles.pinIconCircle}>
@@ -425,12 +430,6 @@ export default function SettingsScreen() {
         isDestructive
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutModal(false)}
-      />
-
-      {/* Server Endpoint Modal */}
-      <ServerConfigModal
-        visible={showServerModal}
-        onClose={() => setShowServerModal(false)}
       />
     </ScreenWrapper>
   );
@@ -652,24 +651,24 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
   },
-  modalPill: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CBD5E1',
-    alignSelf: 'center',
-    marginBottom: 16,
+  modalCenterCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   modalHeaderRow: {
     flexDirection: 'row',

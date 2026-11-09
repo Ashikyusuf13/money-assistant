@@ -17,7 +17,7 @@ import {
   Input,
   CurrencyInput,
   DatePicker,
-  LoadingSpinner,
+  SkeletonCard,
   EmptyState,
   ConfirmModal,
 } from '@/src/components/ui';
@@ -352,7 +352,10 @@ export default function GoalsScreen() {
 
       {/* ── Goals List ── */}
       {isLoading ? (
-        <LoadingSpinner message="Calculating your savings milestones..." />
+        <View style={{ gap: 14, marginBottom: 24 }}>
+          <SkeletonCard height={150} />
+          <SkeletonCard height={150} />
+        </View>
       ) : safeGoals.length > 0 ? (
         <View style={{ gap: 14, marginBottom: 24 }}>
           {safeGoals.map((g) => {
@@ -535,247 +538,93 @@ export default function GoalsScreen() {
         </Card>
       )}
 
-      {/* ── Create Goal Modal ── */}
-      <Modal visible={showAddModal} transparent animationType="slide">
+      {/* ── Create Goal Modal (Centered) ── */}
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddModal(false)}
+      >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalCenterOverlay}
         >
-          <Pressable style={{ flex: 1 }} onPress={() => setShowAddModal(false)} />
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
+          {/* Backdrop Tap to Dismiss */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowAddModal(false)} />
 
-            <View style={styles.modalHeaderRow}>
-              <View>
-                <Text style={styles.modalEyebrow}>NEW TARGET</Text>
-                <Text style={styles.modalTitle}>Create Savings Goal</Text>
+          <View style={styles.modalCenterCard}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 22 }}
+            >
+              <View style={styles.modalHeaderRow}>
+                <View>
+                  <Text style={styles.modalEyebrow}>NEW TARGET</Text>
+                  <Text style={styles.modalTitle}>Create Savings Goal</Text>
+                </View>
+                <Pressable
+                  onPress={() => setShowAddModal(false)}
+                  style={styles.modalCloseBtn}
+                >
+                  <X size={16} color="#64748B" />
+                </Pressable>
               </View>
-              <Pressable
-                onPress={() => setShowAddModal(false)}
-                style={styles.modalCloseBtn}
-              >
-                <X size={16} color="#64748B" />
-              </Pressable>
-            </View>
 
-            {errorMsg ? (
-              <View style={styles.modalErrorBox}>
-                <Text style={styles.modalErrorText}>{errorMsg}</Text>
-              </View>
-            ) : null}
+              {errorMsg ? (
+                <View style={styles.modalErrorBox}>
+                  <Text style={styles.modalErrorText}>{errorMsg}</Text>
+                </View>
+              ) : null}
 
-            {/* Goal Name */}
-            <Input
-              label="GOAL NAME"
-              placeholder="e.g. Vacation Trip, Emergency Fund, Laptop"
-              value={goalName}
-              onChangeText={setGoalName}
-              containerClassName="mb-4"
-            />
-
-            {/* Target Amount */}
-            <CurrencyInput
-              label="TARGET AMOUNT"
-              paiseValue={targetAmountPaise}
-              onPaiseChange={setTargetAmountPaise}
-              containerClassName="mb-4"
-            />
-
-            {/* Target Date */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={styles.fieldLabel}>TARGET COMPLETION DATE</Text>
-              <DatePicker
-                value={targetDate}
-                onChangeDate={setTargetDate}
-                mode="future"
+              {/* Goal Name */}
+              <Input
+                label="GOAL NAME"
+                placeholder="e.g. Vacation Trip, Emergency Fund, Laptop"
+                value={goalName}
+                onChangeText={setGoalName}
+                containerClassName="mb-4"
               />
-            </View>
 
-            {/* Priority Picker */}
-            <View style={{ marginBottom: 20 }}>
-              <Text style={styles.fieldLabel}>PRIORITY LEVEL</Text>
-              <View style={styles.priorityRow}>
-                {PRIORITIES.map((p) => {
-                  const isSelected = priority === p.value;
-                  const Icon = p.icon;
-                  return (
-                    <Pressable
-                      key={p.value}
-                      onPress={() => setPriority(p.value)}
-                      style={[
-                        styles.prioritySelectBtn,
-                        isSelected && { borderColor: p.color, backgroundColor: p.bg },
-                      ]}
-                    >
-                      <Icon size={14} color={isSelected ? p.color : '#64748B'} />
-                      <Text
-                        style={[
-                          styles.prioritySelectText,
-                          isSelected && { color: p.color, fontWeight: '800' },
-                        ]}
-                      >
-                        {p.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+              {/* Target Amount */}
+              <CurrencyInput
+                label="TARGET AMOUNT"
+                paiseValue={targetAmountPaise}
+                onPaiseChange={setTargetAmountPaise}
+                containerClassName="mb-4"
+              />
 
-            <Button
-              title="Save Goal"
-              size="lg"
-              loading={createMutation.isPending}
-              onPress={handleCreateGoal}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ── Send Savings / Contribution Modal (User's concept) ── */}
-      <Modal visible={!!selectedGoalForContribution} transparent animationType="slide">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalBackdrop}
-        >
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={() => setSelectedGoalForContribution(null)}
-          />
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-
-            <View style={styles.modalHeaderRow}>
-              <View>
-                <Text style={styles.modalEyebrow}>TRANSFER SAVINGS</Text>
-                <Text style={styles.modalTitle} numberOfLines={1}>
-                  {selectedGoalForContribution?.name}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setSelectedGoalForContribution(null)}
-                style={styles.modalCloseBtn}
-              >
-                <X size={16} color="#64748B" />
-              </Pressable>
-            </View>
-
-            {/* Goal Snapshot */}
-            {selectedGoalForContribution && (
-              <View style={styles.contribGoalSnapshot}>
-                <View style={styles.snapshotRow}>
-                  <Text style={styles.snapshotLabel}>Saved so far</Text>
-                  <Text style={styles.snapshotTarget}>
-                    Target: {formatPaise(selectedGoalForContribution.targetAmount)}
-                  </Text>
-                </View>
-
-                <Text style={styles.snapshotCurrent}>
-                  {formatPaise(selectedGoalForContribution.currentAmount)}
-                </Text>
-
-                <View style={styles.snapshotTrack}>
-                  <View
-                    style={[
-                      styles.snapshotFill,
-                      {
-                        width: `${Math.min(
-                          selectedGoalForContribution.progressPercentage ?? 0,
-                          100,
-                        )}%`,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-            )}
-
-            {/* Available Monthly Surplus Indicator */}
-            <View style={styles.availableSurplusCard}>
-              <View style={styles.rowCenter}>
-                <Wallet size={16} color="#1565C0" />
-                <Text style={styles.availableSurplusTitle}>
-                  Available Monthly Savings Balance
-                </Text>
-              </View>
-              <Text style={styles.availableSurplusValue}>
-                {formatPaise(monthlySurplusPaise)}
-              </Text>
-            </View>
-
-            {contribError ? (
-              <Text style={styles.contribErrorText}>{contribError}</Text>
-            ) : null}
-
-            {/* Action Type Toggle: Deposit or Withdraw */}
-            <View style={styles.actionToggle}>
-              <Pressable
-                onPress={() => setContribType('contribution')}
-                style={[
-                  styles.toggleTab,
-                  contribType === 'contribution' && styles.toggleTabActive,
-                ]}
-              >
-                <ArrowUpCircle
-                  size={15}
-                  color={contribType === 'contribution' ? '#1565C0' : '#64748B'}
+              {/* Target Date */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.fieldLabel}>TARGET COMPLETION DATE</Text>
+                <DatePicker
+                  value={targetDate}
+                  onChangeDate={setTargetDate}
+                  mode="future"
                 />
-                <Text
-                  style={[
-                    styles.toggleTabText,
-                    contribType === 'contribution' && { color: '#1565C0' },
-                  ]}
-                >
-                  Deposit from Balance
-                </Text>
-              </Pressable>
+              </View>
 
-              <Pressable
-                onPress={() => setContribType('withdrawal')}
-                style={[
-                  styles.toggleTab,
-                  contribType === 'withdrawal' && styles.toggleTabActive,
-                ]}
-              >
-                <ArrowDownCircle
-                  size={15}
-                  color={contribType === 'withdrawal' ? '#DC2626' : '#64748B'}
-                />
-                <Text
-                  style={[
-                    styles.toggleTabText,
-                    contribType === 'withdrawal' && { color: '#DC2626' },
-                  ]}
-                >
-                  Withdraw
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Quick Amount Pills for Deposit */}
-            {contribType === 'contribution' && (
-              <View style={{ marginBottom: 12 }}>
-                <Text style={styles.quickPillsLabel}>Choose Quick Amount:</Text>
-                <View style={styles.quickPillsRow}>
-                  {[
-                    { label: '₹500', paise: 50000 },
-                    { label: '₹1,000', paise: 100000 },
-                    { label: '₹2,000', paise: 200000 },
-                  ].map((p) => {
-                    const isSelected = contribAmountPaise === p.paise;
+              {/* Priority Picker */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={styles.fieldLabel}>PRIORITY LEVEL</Text>
+                <View style={styles.priorityRow}>
+                  {PRIORITIES.map((p) => {
+                    const isSelected = priority === p.value;
+                    const Icon = p.icon;
                     return (
                       <Pressable
-                        key={p.label}
-                        onPress={() => setContribAmountPaise(p.paise)}
+                        key={p.value}
+                        onPress={() => setPriority(p.value)}
                         style={[
-                          styles.quickPill,
-                          isSelected && styles.quickPillActive,
+                          styles.prioritySelectBtn,
+                          isSelected && { borderColor: p.color, backgroundColor: p.bg },
                         ]}
                       >
+                        <Icon size={14} color={isSelected ? p.color : '#64748B'} />
                         <Text
                           style={[
-                            styles.quickPillText,
-                            isSelected && styles.quickPillTextActive,
+                            styles.prioritySelectText,
+                            isSelected && { color: p.color, fontWeight: '800' },
                           ]}
                         >
                           {p.label}
@@ -783,47 +632,223 @@ export default function GoalsScreen() {
                       </Pressable>
                     );
                   })}
-
-                  {monthlySurplusPaise > 0 && (
-                    <Pressable
-                      onPress={() => setContribAmountPaise(monthlySurplusPaise)}
-                      style={[
-                        styles.quickPill,
-                        contribAmountPaise === monthlySurplusPaise && styles.quickPillActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.quickPillText,
-                          contribAmountPaise === monthlySurplusPaise && styles.quickPillTextActive,
-                        ]}
-                      >
-                        All Surplus
-                      </Text>
-                    </Pressable>
-                  )}
                 </View>
               </View>
-            )}
 
-            {/* Amount Input */}
-            <CurrencyInput
-              label={contribType === 'contribution' ? 'TRANSFER AMOUNT' : 'WITHDRAWAL AMOUNT'}
-              paiseValue={contribAmountPaise}
-              onPaiseChange={setContribAmountPaise}
-              containerClassName="mb-5"
-            />
+              <Button
+                title="Save Goal"
+                size="lg"
+                loading={createMutation.isPending}
+                onPress={handleCreateGoal}
+              />
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
-            <Button
-              title={
-                contribType === 'contribution'
-                  ? `Transfer ${contribAmountPaise > 0 ? formatPaise(contribAmountPaise) : ''} to Goal`
-                  : `Withdraw ${contribAmountPaise > 0 ? formatPaise(contribAmountPaise) : ''}`
-              }
-              size="lg"
-              loading={contributeMutation.isPending}
-              onPress={handleContribute}
-            />
+      {/* ── Send Savings / Contribution Modal (Centered) ── */}
+      <Modal
+        visible={!!selectedGoalForContribution}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedGoalForContribution(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalCenterOverlay}
+        >
+          {/* Backdrop Tap to Dismiss */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedGoalForContribution(null)}
+          />
+
+          <View style={styles.modalCenterCard}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 22 }}
+            >
+              <View style={styles.modalHeaderRow}>
+                <View>
+                  <Text style={styles.modalEyebrow}>TRANSFER SAVINGS</Text>
+                  <Text style={styles.modalTitle} numberOfLines={1}>
+                    {selectedGoalForContribution?.name}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setSelectedGoalForContribution(null)}
+                  style={styles.modalCloseBtn}
+                >
+                  <X size={16} color="#64748B" />
+                </Pressable>
+              </View>
+
+              {/* Goal Snapshot */}
+              {selectedGoalForContribution && (
+                <View style={styles.contribGoalSnapshot}>
+                  <View style={styles.snapshotRow}>
+                    <Text style={styles.snapshotLabel}>Saved so far</Text>
+                    <Text style={styles.snapshotTarget}>
+                      Target: {formatPaise(selectedGoalForContribution.targetAmount)}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.snapshotCurrent}>
+                    {formatPaise(selectedGoalForContribution.currentAmount)}
+                  </Text>
+
+                  <View style={styles.snapshotTrack}>
+                    <View
+                      style={[
+                        styles.snapshotFill,
+                        {
+                          width: `${Math.min(
+                            selectedGoalForContribution.progressPercentage ?? 0,
+                            100,
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {/* Available Monthly Surplus Indicator */}
+              <View style={styles.availableSurplusCard}>
+                <View style={styles.rowCenter}>
+                  <Wallet size={16} color="#1565C0" />
+                  <Text style={styles.availableSurplusTitle}>
+                    Available Monthly Savings Balance
+                  </Text>
+                </View>
+                <Text style={styles.availableSurplusValue}>
+                  {formatPaise(monthlySurplusPaise)}
+                </Text>
+              </View>
+
+              {contribError ? (
+                <Text style={styles.contribErrorText}>{contribError}</Text>
+              ) : null}
+
+              {/* Action Type Toggle: Deposit or Withdraw */}
+              <View style={styles.actionToggle}>
+                <Pressable
+                  onPress={() => setContribType('contribution')}
+                  style={[
+                    styles.toggleTab,
+                    contribType === 'contribution' && styles.toggleTabActive,
+                  ]}
+                >
+                  <ArrowUpCircle
+                    size={15}
+                    color={contribType === 'contribution' ? '#1565C0' : '#64748B'}
+                  />
+                  <Text
+                    style={[
+                      styles.toggleTabText,
+                      contribType === 'contribution' && { color: '#1565C0' },
+                    ]}
+                  >
+                    Deposit from Balance
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setContribType('withdrawal')}
+                  style={[
+                    styles.toggleTab,
+                    contribType === 'withdrawal' && styles.toggleTabActive,
+                  ]}
+                >
+                  <ArrowDownCircle
+                    size={15}
+                    color={contribType === 'withdrawal' ? '#DC2626' : '#64748B'}
+                  />
+                  <Text
+                    style={[
+                      styles.toggleTabText,
+                      contribType === 'withdrawal' && { color: '#DC2626' },
+                    ]}
+                  >
+                    Withdraw
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Quick Amount Pills for Deposit */}
+              {contribType === 'contribution' && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={styles.quickPillsLabel}>Choose Quick Amount:</Text>
+                  <View style={styles.quickPillsRow}>
+                    {[
+                      { label: '₹500', paise: 50000 },
+                      { label: '₹1,000', paise: 100000 },
+                      { label: '₹2,000', paise: 200000 },
+                    ].map((p) => {
+                      const isSelected = contribAmountPaise === p.paise;
+                      return (
+                        <Pressable
+                          key={p.label}
+                          onPress={() => setContribAmountPaise(p.paise)}
+                          style={[
+                            styles.quickPill,
+                            isSelected && styles.quickPillActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.quickPillText,
+                              isSelected && styles.quickPillTextActive,
+                            ]}
+                          >
+                            {p.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+
+                    {monthlySurplusPaise > 0 && (
+                      <Pressable
+                        onPress={() => setContribAmountPaise(monthlySurplusPaise)}
+                        style={[
+                          styles.quickPill,
+                          contribAmountPaise === monthlySurplusPaise && styles.quickPillActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.quickPillText,
+                            contribAmountPaise === monthlySurplusPaise && styles.quickPillTextActive,
+                          ]}
+                        >
+                          All Surplus
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Amount Input */}
+              <CurrencyInput
+                label={contribType === 'contribution' ? 'TRANSFER AMOUNT' : 'WITHDRAWAL AMOUNT'}
+                paiseValue={contribAmountPaise}
+                onPaiseChange={setContribAmountPaise}
+                containerClassName="mb-5"
+              />
+
+              <Button
+                title={
+                  contribType === 'contribution'
+                    ? `Transfer ${contribAmountPaise > 0 ? formatPaise(contribAmountPaise) : ''} to Goal`
+                    : `Withdraw ${contribAmountPaise > 0 ? formatPaise(contribAmountPaise) : ''}`
+                }
+                size="lg"
+                loading={contributeMutation.isPending}
+                onPress={handleContribute}
+              />
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1245,18 +1270,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1565C0',
   },
-  modalBackdrop: {
+  modalCenterOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
+  modalCenterCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   modalHandle: {
     width: 36,

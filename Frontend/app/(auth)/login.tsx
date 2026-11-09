@@ -1,40 +1,74 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   Pressable,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Input, Button, Card } from '@/src/components/ui';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Input, Button } from '@/src/components/ui';
 import { useAuthStore } from '@/src/store/authStore';
 import { loginSchema, type LoginFormData } from '@/src/schemas/auth.schemas';
-import { Mail, Lock, AlertCircle, Server, Wallet } from 'lucide-react-native';
-import { ServerConfigModal } from '@/src/components/ServerConfigModal';
-import { getCurrentApiBaseUrl } from '@/src/services/api';
+import { Mail, Lock, AlertCircle, Wallet } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const BLUE = '#1565C0';
-const LIGHT_BLUE = '#1976D2';
 
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { login, isLoading, error: authError, clearError } = useAuthStore();
   const [formError, setFormError] = useState<string | null>(null);
-  const [showServerModal, setShowServerModal] = useState(false);
-  const [currentServerUrl, setCurrentServerUrl] = useState('');
+
+  // Background floating orb animations
+  const orb1Y = useRef(new Animated.Value(0)).current;
+  const orb2Y = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    setCurrentServerUrl(getCurrentApiBaseUrl());
-  }, [showServerModal]);
+    const float1 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orb1Y, {
+          toValue: -24,
+          duration: 3200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(orb1Y, {
+          toValue: 0,
+          duration: 3200,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    const float2 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orb2Y, {
+          toValue: 24,
+          duration: 3600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(orb2Y, {
+          toValue: 0,
+          duration: 3600,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    float1.start();
+    float2.start();
+
+    return () => {
+      float1.stop();
+      float2.stop();
+    };
+  }, [orb1Y, orb2Y]);
 
   const {
     control,
@@ -65,147 +99,135 @@ export default function LoginScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      {/* ── Blue Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
-        {/* Logo circle */}
-        <View style={styles.logoCircle}>
-          <Wallet size={32} color="#FFFFFF" strokeWidth={1.8} />
-        </View>
-        <Text style={styles.appName}>FinancialAI</Text>
-        <Text style={styles.headerTitle}>Welcome Back</Text>
-        <Text style={styles.headerSubtitle}>Sign in to continue</Text>
+      {/* ── Ambient Animated Background Gradient Blobs ── */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <LinearGradient
+          colors={['#0F2B66', '#1565C0', '#0284C7']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <Animated.View
+          style={[
+            styles.ambientOrb1,
+            { transform: [{ translateY: orb1Y }] },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.ambientOrb2,
+            { transform: [{ translateY: orb2Y }] },
+          ]}
+        />
       </View>
 
-      {/* ── White card body ── */}
+      {/* ── Keyboard Avoiding View + Scrollable Center Body ── */}
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          style={styles.flex}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 24 },
+            {
+              paddingTop: insets.top + 20,
+              paddingBottom: insets.bottom + 24,
+            },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
+          {/* ── Center Container ── */}
+          <View style={styles.centerContainer}>
+            {/* Header Brand Motif */}
+            <View style={styles.brandHeader}>
+              <View style={styles.logoCircle}>
+                <Wallet size={34} color="#FFFFFF" strokeWidth={1.8} />
+              </View>
+              <Text style={styles.appName}>Money Assistant</Text>
+              <Text style={styles.headerTitle}>Welcome Back</Text>
+              <Text style={styles.headerSubtitle}>Sign in to access your finances</Text>
+            </View>
 
-            {/* Error banner */}
-            {displayError ? (
-              <Card className="bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 mb-5 p-3.5 flex-row items-center gap-2.5">
-                <AlertCircle size={18} color="#e11d48" />
-                <View style={styles.flex}>
-                  <Text className="text-xs font-medium text-rose-700 dark:text-rose-400">
-                    {displayError}
-                  </Text>
-                  {displayError.toLowerCase().includes('network') && (
-                    <Text className="text-[11px] text-rose-600 mt-1">
-                      Ensure phone and PC are on the same Wi-Fi. Check the Server IP below.
-                    </Text>
-                  )}
+            {/* ── White Form Card ── */}
+            <View style={styles.card}>
+              {/* Error banner */}
+              {displayError ? (
+                <View style={styles.errorBanner}>
+                  <AlertCircle size={18} color="#DC2626" />
+                  <Text style={styles.errorText}>{displayError}</Text>
                 </View>
-              </Card>
-            ) : null}
+              ) : null}
 
-            {/* Email field */}
-            <View style={styles.fieldGap}>
-              <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label="Email Address"
-                    placeholder="you@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    leftIcon={<Mail size={18} color={BLUE} />}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.email?.message}
-                  />
-                )}
+              {/* Email field */}
+              <View style={styles.fieldGap}>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Email Address"
+                      placeholder="you@example.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      leftIcon={<Mail size={18} color="#7B93C8" />}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.email?.message}
+                    />
+                  )}
+                />
+              </View>
+
+              {/* Password field */}
+              <View style={styles.fieldGap}>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Password"
+                      placeholder="Enter your password"
+                      secureTextEntry
+                      leftIcon={<Lock size={18} color="#7B93C8" />}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.password?.message}
+                    />
+                  )}
+                />
+              </View>
+
+              {/* Sign In button */}
+              <Button
+                title="Sign In"
+                size="lg"
+                loading={isLoading}
+                onPress={handleSubmit(onSubmit)}
+                className="mt-2"
               />
-            </View>
 
-            {/* Password field */}
-            <View style={styles.fieldGap}>
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label="Password"
-                    placeholder="Enter your password"
-                    secureTextEntry
-                    leftIcon={<Lock size={18} color={BLUE} />}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.password?.message}
-                  />
-                )}
-              />
-            </View>
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-            {/* Forgot password */}
-            <Pressable
-              onPress={() => router.push('/(auth)/forgot-password')}
-              style={styles.forgotWrapper}
-            >
-              <Text style={styles.forgotText}>Forgot Password?</Text>
-            </Pressable>
-
-            {/* Sign In button */}
-            <Button
-              title="Sign In"
-              size="lg"
-              loading={isLoading}
-              onPress={handleSubmit(onSubmit)}
-              className="mt-2"
-            />
-
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Sign Up link */}
-            <View style={styles.signUpRow}>
-              <Text style={styles.signUpPrompt}>Don't have an account?</Text>
-              <Pressable onPress={() => router.push('/(auth)/register')}>
-                <Text style={styles.signUpLink}> Sign Up</Text>
-              </Pressable>
-            </View>
-
-            {/* Server config pill */}
-            <View style={styles.pillWrapper}>
-              <TouchableOpacity
-                onPress={() => setShowServerModal(true)}
-                style={styles.serverPill}
-              >
-                <Server size={12} color={BLUE} />
-                <Text style={styles.serverPillText}>
-                  {currentServerUrl
-                    .replace(/^https?:\/\//, '')
-                    .replace(/\/api\/v1$/, '') || 'money-assistant-backend.vercel.app'}
-                </Text>
-                <Text style={styles.serverPillChange}>Change</Text>
-              </TouchableOpacity>
+              {/* Sign Up link (Centered as requested) */}
+              <View style={styles.signUpRow}>
+                <Text style={styles.signUpPrompt}>Don't have an account?</Text>
+                <Pressable onPress={() => router.push('/(auth)/register')}>
+                  <Text style={styles.signUpLink}> Create Account</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <ServerConfigModal
-        visible={showServerModal}
-        onClose={() => setShowServerModal(false)}
-      />
     </View>
   );
 }
@@ -213,155 +235,148 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BLUE,
+    backgroundColor: '#1565C0',
   },
-  flex: {
+  keyboardContainer: {
     flex: 1,
   },
-
-  /* Header */
-  header: {
-    backgroundColor: BLUE,
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 36,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+  },
+  centerContainer: {
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+  },
+  ambientOrb1: {
+    position: 'absolute',
+    top: '10%',
+    left: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  ambientOrb2: {
+    position: 'absolute',
+    bottom: '15%',
+    right: -40,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+  },
+  brandHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   logoCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
   appName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.75)',
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#90CAF9',
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFFFFF',
-    marginBottom: 4,
+    letterSpacing: 0.2,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '400',
-  },
-
-  /* White card */
-  scrollContent: {
-    flexGrow: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#E3F2FD',
+    marginTop: 4,
   },
   card: {
-    flex: 1,
+    width: '100%',
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 16,
-    // subtle shadow on top edge
+    borderRadius: 28,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-
-  /* Fields */
-  fieldGap: {
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    padding: 12,
     marginBottom: 16,
   },
-
-  /* Forgot password */
-  forgotWrapper: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-    marginTop: 2,
+  errorText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
   },
-  forgotText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: BLUE,
+  fieldGap: {
+    marginBottom: 14,
   },
-
-  /* Sign In button override */
   signInBtn: {
-    backgroundColor: BLUE,
-    height: 52,
-    borderRadius: 14,
+    marginTop: 6,
+    borderRadius: 16,
   },
-
-  /* Divider */
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 18,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#E2E8F0',
   },
   dividerText: {
     marginHorizontal: 12,
-    fontSize: 13,
-    color: '#9E9E9E',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textTransform: 'lowercase',
   },
-
-  /* Sign Up */
   signUpRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    paddingVertical: 4,
   },
   signUpPrompt: {
     fontSize: 13,
-    color: '#757575',
+    color: '#64748B',
+    fontWeight: '500',
   },
   signUpLink: {
     fontSize: 13,
-    fontWeight: '700',
-    color: BLUE,
-  },
-
-  /* Server pill */
-  pillWrapper: {
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  serverPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: '#F0F4FF',
-    borderWidth: 1,
-    borderColor: '#BBDEFB',
-  },
-  serverPillText: {
-    fontSize: 11,
-    fontFamily: Platform.select({ ios: 'Courier New', android: 'monospace' }),
-    color: '#546E7A',
-    flexShrink: 1,
-  },
-  serverPillChange: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: BLUE,
-    marginLeft: 2,
+    fontWeight: '800',
+    color: '#1565C0',
   },
 });

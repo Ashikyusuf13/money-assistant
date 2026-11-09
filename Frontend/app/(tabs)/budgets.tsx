@@ -15,7 +15,7 @@ import {
   Button,
   CurrencyInput,
   CategoryPicker,
-  LoadingSpinner,
+  SkeletonList,
   EmptyState,
   ConfirmModal,
 } from '@/src/components/ui';
@@ -23,6 +23,7 @@ import {
   useBudgets,
   useBudgetAlerts,
   useCreateBudget,
+  useUpdateBudget,
   useDeleteBudget,
 } from '@/src/hooks/useBudgets';
 import { formatPaise } from '@/src/utils/currency';
@@ -30,6 +31,7 @@ import { formatMonthYear, getCurrentMonthStr } from '@/src/utils/date';
 import { Budget } from '@/src/types/api';
 import {
   Plus,
+  Pencil,
   Trash2,
   AlertTriangle,
   ChevronLeft,
@@ -117,10 +119,12 @@ export default function BudgetsScreen() {
   const { data: alerts } = useBudgetAlerts();
 
   const createMutation = useCreateBudget();
+  const updateMutation = useUpdateBudget();
   const deleteMutation = useDeleteBudget();
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Form values
@@ -141,22 +145,52 @@ export default function BudgetsScreen() {
     setSelectedMonth(`${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`);
   };
 
-  const handleCreate = async () => {
+  const handleOpenCreate = () => {
+    setEditingBudget(null);
+    setCategory('groceries');
+    setAmountPaise(0);
+    setErrorMsg(null);
+    setShowAddModal(true);
+  };
+
+  const handleOpenEdit = (b: Budget) => {
+    setEditingBudget(b);
+    setCategory(b.category);
+    setAmountPaise(b.amount);
+    setErrorMsg(null);
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setEditingBudget(null);
+    setErrorMsg(null);
+  };
+
+  const handleSave = async () => {
     if (amountPaise <= 0) {
       setErrorMsg('Please specify a monthly budget limit greater than ₹0.');
       return;
     }
     setErrorMsg(null);
     try {
-      await createMutation.mutateAsync({
-        category,
-        amount: amountPaise,
-        month: selectedMonth,
-      });
-      setShowAddModal(false);
+      if (editingBudget) {
+        await updateMutation.mutateAsync({
+          id: (editingBudget._id || editingBudget.id)!,
+          amount: amountPaise,
+        });
+      } else {
+        await createMutation.mutateAsync({
+          category,
+          amount: amountPaise,
+          month: selectedMonth,
+        });
+      }
+      handleCloseModal();
       setAmountPaise(0);
+      void refetch();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to create budget');
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save budget');
     }
   };
 
@@ -300,7 +334,9 @@ export default function BudgetsScreen() {
 
       {/* ── Category Budget List ───────────────────────────────────────────── */}
       {isLoading ? (
-        <LoadingSpinner message="Calculating budgets and expenses..." />
+        <View style={styles.skeletonContainer}>
+          <SkeletonList count={4} />
+        </View>
       ) : budgetList.length > 0 ? (
         <View style={{ gap: 12, marginBottom: 90 }}>
           {budgetList.map((b) => {
@@ -375,14 +411,23 @@ export default function BudgetsScreen() {
                   </View>
                 </View>
 
-                {/* Right: delete */}
-                <Pressable
-                  onPress={() => setDeleteId(b._id || b.id)}
-                  style={styles.catDeleteBtn}
-                  hitSlop={8}
-                >
-                  <Trash2 size={16} color="#90A4AE" />
-                </Pressable>
+                {/* Right: action buttons (Edit + Delete) */}
+                <View style={styles.catActionsRow}>
+                  <Pressable
+                    onPress={() => handleOpenEdit(b)}
+                    style={styles.catActionBtn}
+                    hitSlop={8}
+                  >
+                    <Pencil size={15} color="#1565C0" />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDeleteId((b._id || b.id)!)}
+                    style={styles.catActionBtn}
+                    hitSlop={8}
+                  >
+                    <Trash2 size={15} color="#90A4AE" />
+                  </Pressable>
+                </View>
               </View>
             );
           })}
@@ -394,64 +439,48 @@ export default function BudgetsScreen() {
             title="No Budgets Defined"
             description="Create category spending limits for this month to receive real-time threshold warnings."
             actionTitle="Create Budget"
-            onAction={() => {
-              setErrorMsg(null);
-              setAmountPaise(0);
-              setShowAddModal(true);
-            }}
+            onAction={handleOpenCreate}
           />
         </View>
       )}
 
       {/* ── FAB: Add Budget ────────────────────────────────────────────────── */}
-      <Pressable
-        onPress={() => {
-          setErrorMsg(null);
-          setAmountPaise(0);
-          setShowAddModal(true);
-        }}
-        style={styles.fab}
-      >
+      <Pressable onPress={handleOpenCreate} style={styles.fab}>
         <Plus size={28} color="#ffffff" />
       </Pressable>
 
-      {/* ── Add Budget Modal ───────────────────────────────────────────────── */}
+      {/* ── Centered Budget Modal (Edit / Create) ──────────────────────────── */}
       <Modal
         visible={showAddModal}
         transparent
-        animationType="slide"
-        onRequestClose={() => setShowAddModal(false)}
+        animationType="fade"
+        onRequestClose={handleCloseModal}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}
+          style={styles.centeredModalOverlay}
         >
-          <Pressable style={{ flex: 1 }} onPress={() => setShowAddModal(false)} />
-          <View
-            style={[
-              styles.modalSheet,
-              { paddingBottom: Platform.OS === 'ios' ? 34 : 24 },
-            ]}
-          >
-            {/* Handle */}
-            <View style={styles.modalHandle}>
-              <View style={styles.modalHandleBar} />
-            </View>
+          {/* Outside Backdrop Touch Dismiss */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleCloseModal} />
 
+          <View style={styles.centeredModalCard}>
             <ScrollView
-              style={{ paddingHorizontal: 20, paddingTop: 12 }}
-              keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 22 }}
             >
               <View style={styles.modalTitleRow}>
                 <View>
-                  <Text style={styles.modalEyebrow}>{formatMonthYear(selectedMonth)}</Text>
-                  <Text style={styles.modalTitle}>Create Category Budget</Text>
+                  <Text style={styles.modalEyebrow}>
+                    {editingBudget
+                      ? `EDITING ${editingBudget.category.toUpperCase()} BUDGET`
+                      : formatMonthYear(selectedMonth)}
+                  </Text>
+                  <Text style={styles.modalTitle}>
+                    {editingBudget ? 'Update Budget Limit' : 'Create Category Budget'}
+                  </Text>
                 </View>
-                <Pressable
-                  onPress={() => setShowAddModal(false)}
-                  style={styles.modalCloseBtn}
-                >
+                <Pressable onPress={handleCloseModal} style={styles.modalCloseBtn}>
                   <X size={16} color="#546E7A" />
                 </Pressable>
               </View>
@@ -462,11 +491,13 @@ export default function BudgetsScreen() {
                 </View>
               ) : null}
 
-              <CategoryPicker
-                selectedCategory={category}
-                onSelectCategory={setCategory}
-                containerClassName="mb-4"
-              />
+              {!editingBudget && (
+                <CategoryPicker
+                  selectedCategory={category}
+                  onSelectCategory={setCategory}
+                  containerClassName="mb-4"
+                />
+              )}
 
               <CurrencyInput
                 label="Monthly Limit Amount"
@@ -478,12 +509,11 @@ export default function BudgetsScreen() {
               />
 
               <Button
-                title="Save Budget"
+                title={editingBudget ? 'Update Limit' : 'Save Budget'}
                 size="lg"
-                loading={createMutation.isPending}
-                onPress={handleCreate}
+                loading={createMutation.isPending || updateMutation.isPending}
+                onPress={handleSave}
               />
-              <View style={{ height: 16 }} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -754,10 +784,16 @@ const styles = StyleSheet.create({
     color: '#78909C',
     fontWeight: '500',
   },
-  catDeleteBtn: {
-    padding: 6,
+  catActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 8,
+  },
+  catActionBtn: {
+    padding: 7,
     borderRadius: 8,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F1F5F9',
   },
 
   // FAB
@@ -778,24 +814,36 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
 
-  // Modal sheet
-  modalSheet: {
+  skeletonContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderTopWidth: 1,
-    borderTopColor: '#E8EEF9',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 90,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  modalHandle: {
+
+  // Centered Modal
+  centeredModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
+    paddingHorizontal: 20,
   },
-  modalHandleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CFD8DC',
+  centeredModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   modalTitleRow: {
     flexDirection: 'row',

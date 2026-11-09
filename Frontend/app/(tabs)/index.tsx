@@ -13,7 +13,8 @@ import {
   ScreenWrapper,
   Card,
   Badge,
-  LoadingSpinner,
+  SkeletonCard,
+  SkeletonList,
   EmptyState,
   ConfirmModal,
 } from '@/src/components/ui';
@@ -135,7 +136,20 @@ export default function HomeScreen() {
       </View>
 
       {isLoading ? (
-        <LoadingSpinner message="Loading your financial overview..." />
+        <View style={{ gap: 14, marginTop: 8, marginBottom: 24 }}>
+          <SkeletonCard height={170} />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <SkeletonCard height={95} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <SkeletonCard height={95} />
+            </View>
+          </View>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16 }}>
+            <SkeletonList count={4} />
+          </View>
+        </View>
       ) : (
         <>
           {/* ── Hero Balance Card ─────────────────────────── */}

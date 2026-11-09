@@ -9,3 +9,4 @@ export * from './CurrencyInput';
 export * from './DatePicker';
 export * from './CategoryPicker';
 export * from './ConfirmModal';
+export * from './Skeleton';
