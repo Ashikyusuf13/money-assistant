@@ -48,8 +48,9 @@ export function useTransaction(id: string) {
   return useQuery<Transaction, Error>({
     queryKey: ['transaction', id],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<Transaction>>(`/transactions/${id}`);
-      return response.data.data;
+      const response = await api.get<any>(`/transactions/${id}`);
+      const payload = response.data?.data;
+      return payload?.transaction ?? payload;
     },
     enabled: !!id,
   });

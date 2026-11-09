@@ -33,6 +33,7 @@ import {
   ChevronRight,
   PieChart,
   Target,
+  FileText,
   BarChart3,
   CircleDollarSign,
   Bell,
@@ -258,15 +259,15 @@ export default function HomeScreen() {
                 <Text style={styles.quickActionLabel}>Set{'\n'}Goal</Text>
               </Pressable>
 
-              {/* AI Assistant */}
+              {/* Reports */}
               <Pressable
-                onPress={() => router.push('/(tabs)/assistant')}
+                onPress={() => router.push('/(tabs)/reports')}
                 style={styles.quickActionItem}
               >
-                <View style={[styles.quickActionCircle, { backgroundColor: '#E0F7FA' }]}>
-                  <Bot size={22} color="#00BCD4" />
+                <View style={[styles.quickActionCircle, { backgroundColor: '#E0F2FE' }]}>
+                  <FileText size={22} color="#0284C7" />
                 </View>
-                <Text style={styles.quickActionLabel}>AI{'\n'}Insights</Text>
+                <Text style={styles.quickActionLabel}>Financial{'\n'}Reports</Text>
               </Pressable>
             </View>
           </View>

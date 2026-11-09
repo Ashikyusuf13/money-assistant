@@ -6,7 +6,7 @@ import {
   BarChart2,
   PieChart,
   Target,
-  Bot,
+  FileText,
 } from 'lucide-react-native';
 
 const ACTIVE_COLOR = '#1565C0';
@@ -109,12 +109,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="assistant"
+        name="reports"
         options={{
-          title: 'Assistant',
+          title: 'Reports',
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrapper : undefined}>
-              <Bot
+              <FileText
                 color={color}
                 size={22}
                 strokeWidth={focused ? 2.2 : 1.8}

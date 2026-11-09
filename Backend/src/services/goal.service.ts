@@ -248,39 +248,46 @@ export async function recordContribution(
 
   let transactionId: Types.ObjectId | undefined;
 
-  // If funded from a tracked account, update the account balance and record an internal transfer
+  // If funded from a tracked account or default single wallet, update the account balance and record an internal transfer
+  let targetAccountId: Types.ObjectId | undefined;
   if (input.fromAccountId) {
-    const accountObjectId = new Types.ObjectId(input.fromAccountId);
+    targetAccountId = new Types.ObjectId(input.fromAccountId);
+  } else {
+    const defaultAcc = await Account.findOne({ userId: userObjectId, isArchived: false });
+    if (defaultAcc) {
+      targetAccountId = defaultAcc._id;
+    }
+  }
+
+  if (targetAccountId) {
     const account = await Account.findOne({
-      _id: accountObjectId,
+      _id: targetAccountId,
       userId: userObjectId,
       isArchived: false,
     });
 
-    if (!account) {
-      throw new NotFoundError('Funding account not found');
+    if (account) {
+      const delta = type === 'contribution' ? -input.amount : input.amount;
+      await Account.updateOne(
+        { _id: targetAccountId },
+        { $inc: { currentBalance: delta } },
+      );
+
+      // Create internal transfer transaction (not an expense)
+      const tx = await Transaction.create({
+        userId: userObjectId,
+        type: 'transfer',
+        amount: input.amount,
+        category: 'savings_transfer',
+        description:
+          type === 'contribution'
+            ? `Savings Allocation: ${goal.name}`
+            : `Savings Withdrawal: ${goal.name}`,
+        accountId: targetAccountId,
+        date: input.date ? new Date(input.date) : new Date(),
+      });
+      transactionId = tx._id;
     }
-
-    const delta = type === 'contribution' ? -input.amount : input.amount;
-    await Account.updateOne(
-      { _id: accountObjectId },
-      { $inc: { currentBalance: delta } },
-    );
-
-    // Create internal transfer transaction (not an expense)
-    const tx = await Transaction.create({
-      userId: userObjectId,
-      type: 'transfer',
-      amount: input.amount,
-      category: 'savings_transfer',
-      description:
-        type === 'contribution'
-          ? `Savings Allocation: ${goal.name}`
-          : `Savings Withdrawal: ${goal.name}`,
-      accountId: accountObjectId,
-      date: input.date ? new Date(input.date) : new Date(),
-    });
-    transactionId = tx._id;
   }
 
   // Create contribution document
