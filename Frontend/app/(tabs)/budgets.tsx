@@ -52,6 +52,7 @@ import {
   Briefcase,
   BookOpen,
   Package,
+  TrendingUp,
 } from 'lucide-react-native';
 
 // ─── Category icon helpers ─────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ const CATEGORY_META: Record<string, { color: string; bg: string }> = {
   utilities:     { color: '#CA8A04', bg: '#FEF9C3' },
   education:     { color: '#1565C0', bg: '#DBEAFE' },
   travel:        { color: '#0D9488', bg: '#CCFBF1' },
+  investment:    { color: '#0D9488', bg: '#CCFBF1' },
   other:         { color: '#64748B', bg: '#F1F5F9' },
 };
 
@@ -94,6 +96,8 @@ function renderBudgetCategoryIcon(category: string, color: string, size = 20) {
       return <BookOpen size={size} color={color} strokeWidth={2.2} />;
     case 'travel':
       return <Car size={size} color={color} strokeWidth={2.2} />;
+    case 'investment':
+      return <TrendingUp size={size} color={color} strokeWidth={2.2} />;
     default:
       return <Package size={size} color={color} strokeWidth={2.2} />;
   }

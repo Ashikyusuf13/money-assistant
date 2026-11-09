@@ -71,6 +71,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   income: '#059669',
   transfer: '#4F46E5',
   refund: '#0891B2',
+  investment: '#0D9488',
+  investments: '#0D9488',
   others: '#64748B',
 };
 
@@ -105,6 +107,9 @@ function renderCategoryIcon(category: string, color: string, size = 20) {
       return <ArrowLeftRight size={size} color={color} strokeWidth={2.2} />;
     case 'refund':
       return <RotateCcw size={size} color={color} strokeWidth={2.2} />;
+    case 'investment':
+    case 'investments':
+      return <TrendingUp size={size} color={color} strokeWidth={2.2} />;
     default:
       return <Package size={size} color={color} strokeWidth={2.2} />;
   }
@@ -234,10 +239,13 @@ export default function TransactionsScreen() {
                       onPress={() => router.push(`/transaction/${tx._id ?? tx.id}`)}
                       style={styles.txPressable}
                     >
-                      <View style={[
-                        styles.txRow,
-                        idx < items.length - 1 && styles.txRowBorder,
-                      ]}>
+                      <View
+                        className="flex-row items-center justify-between w-full"
+                        style={[
+                          styles.txRow,
+                          idx < items.length - 1 && styles.txRowBorder,
+                        ]}
+                      >
                         {/* Category Icon */}
                         <View style={[styles.iconBubble, { backgroundColor: catColor + '15', borderColor: catColor + '35' }]}>
                           {renderCategoryIcon(tx.category, catColor, 20)}

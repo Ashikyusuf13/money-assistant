@@ -61,13 +61,6 @@ export default function AddIncomeScreen() {
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Auto pre-fill with current profile salary if available and amount is 0
-  useEffect(() => {
-    if (salary?.baseMonthlySalary && paiseAmount === 0) {
-      setPaiseAmount(salary.baseMonthlySalary);
-    }
-  }, [salary]);
-
   const isSubmitting = createMutation.isPending || setupSalaryMutation.isPending;
 
   const handleSubmit = async () => {
@@ -96,10 +89,12 @@ export default function AddIncomeScreen() {
         date: transactionDate,
       });
 
-      // 2. If syncSalary is true or category is salary, update the user profile base salary!
-      if (syncSalary || category === 'salary') {
+      // 2. If syncSalary is true, add this new income to the user's existing profile monthly salary!
+      if (syncSalary) {
+        const currentSalary = salary?.baseMonthlySalary ?? 0;
+        const updatedSalary = currentSalary + paiseAmount;
         await setupSalaryMutation.mutateAsync({
-          baseMonthlySalary: paiseAmount,
+          baseMonthlySalary: updatedSalary,
         });
       }
 
@@ -221,10 +216,10 @@ export default function AddIncomeScreen() {
         <View style={{ flex: 1, marginRight: 12 }}>
           <View style={styles.rowCenter}>
             <CheckCircle2 size={16} color="#10B981" />
-            <Text style={styles.syncTitle}>Sync to Profile Monthly Salary</Text>
+            <Text style={styles.syncTitle}>Add to Profile Monthly Salary</Text>
           </View>
           <Text style={styles.syncDesc}>
-            Updates your base monthly salary in profile &amp; sets the starting current balance on Home.
+            Adds this amount to your monthly salary ({formatPaise(salary?.baseMonthlySalary ?? 0)} + {formatPaise(paiseAmount)} = {formatPaise((salary?.baseMonthlySalary ?? 0) + paiseAmount)})
           </Text>
         </View>
         <Switch

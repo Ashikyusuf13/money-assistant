@@ -32,6 +32,7 @@ import {
   Film,
   Package,
   TrendingDown,
+  TrendingUp,
 } from 'lucide-react-native';
 import { formatPaise } from '@/src/utils/currency';
 
@@ -43,6 +44,7 @@ const EXPENSE_CATEGORIES = [
   { id: 'bills', label: 'Bills & Utilities', icon: Zap, color: '#EAB308', bg: '#FEF9C3' },
   { id: 'health', label: 'Health & Medical', icon: Heart, color: '#EF4444', bg: '#FEE2E2' },
   { id: 'entertainment', label: 'Entertainment', icon: Film, color: '#A855F7', bg: '#F3E8FF' },
+  { id: 'investment', label: 'Investment', icon: TrendingUp, color: '#0D9488', bg: '#CCFBF1' },
   { id: 'others', label: 'Other Expenses', icon: Package, color: '#64748B', bg: '#F1F5F9' },
 ];
 
@@ -53,6 +55,7 @@ export default function AddExpenseScreen() {
 
   const [paiseAmount, setPaiseAmount] = useState(0);
   const [category, setCategory] = useState('groceries');
+  const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [transactionDate, setTransactionDate] = useState<string>(
@@ -74,13 +77,20 @@ export default function AddExpenseScreen() {
       return;
     }
 
+    const finalCategory =
+      category === 'others' && customCategory.trim()
+        ? customCategory.trim()
+        : category;
+
     try {
       await createMutation.mutateAsync({
         accountId,
         type: 'expense',
         amount: paiseAmount,
-        category,
-        description: description.trim() || `${category.charAt(0).toUpperCase() + category.slice(1)} Expense`,
+        category: finalCategory,
+        description:
+          description.trim() ||
+          `${finalCategory.charAt(0).toUpperCase() + finalCategory.slice(1)} Expense`,
         notes: notes.trim() || undefined,
         date: transactionDate,
       });
@@ -161,6 +171,26 @@ export default function AddExpenseScreen() {
             );
           })}
         </View>
+
+        {/* ── Custom Category Input Field (When 'Others' is selected) ── */}
+        {category === 'others' && (
+          <View style={styles.customCategorySection}>
+            <View style={styles.customCategoryHeader}>
+              <Package size={14} color="#64748B" />
+              <Text style={styles.customCategoryLabel}>Custom Category Name</Text>
+            </View>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g. Gym, Pet Care, Education, Maintenance"
+                placeholderTextColor="#94A3B8"
+                value={customCategory}
+                onChangeText={setCustomCategory}
+                autoFocus
+              />
+            </View>
+          </View>
+        )}
       </View>
 
       {/* ── Date & Details Card ── */}
@@ -342,6 +372,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#334155',
+  },
+  customCategorySection: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  customCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  customCategoryLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   inputRow: {
     flexDirection: 'row',

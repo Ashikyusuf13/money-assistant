@@ -55,6 +55,7 @@ export default function AddTransactionScreen() {
   const [type, setType] = useState<TransactionType>('expense');
   const [paiseAmount, setPaiseAmount] = useState(0);
   const [category, setCategory] = useState('groceries');
+  const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -118,11 +119,18 @@ export default function AddTransactionScreen() {
       }
     }
 
+    const finalCategory =
+      type === 'transfer'
+        ? 'transfer'
+        : (category === 'other' || category === 'others') && customCategory.trim()
+        ? customCategory.trim()
+        : category;
+
     try {
       await createMutation.mutateAsync({
         type,
         amount: paiseAmount,
-        category: type === 'transfer' ? 'transfer' : category,
+        category: finalCategory,
         description: description.trim(),
         accountId: selectedAccountId || undefined,
         toAccountId: type === 'transfer' ? selectedToAccountId : undefined,
@@ -212,6 +220,23 @@ export default function AddTransactionScreen() {
               selectedCategory={category}
               onSelectCategory={setCategory}
             />
+            {(category === 'other' || category === 'others') && (
+              <View style={{ marginTop: 10 }}>
+                <Text style={[styles.fieldLabel, { fontSize: 11, marginBottom: 4 }]}>
+                  Custom Category Name
+                </Text>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="e.g. Gym, Pet Care, Education, Maintenance"
+                    placeholderTextColor="#B0C1E0"
+                    value={customCategory}
+                    onChangeText={setCustomCategory}
+                    autoFocus
+                  />
+                </View>
+              </View>
+            )}
             <View style={styles.divider} />
           </>
         )}

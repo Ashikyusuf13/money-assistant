@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from '@/src/store/authStore';
 import { useDashboard } from '@/src/hooks/useDashboard';
 import { useSalary } from '@/src/hooks/useSalary';
+import { useBudgets } from '@/src/hooks/useBudgets';
 import { formatPaise, formatTransactionAmount } from '@/src/utils/currency';
 import { formatDate, formatMonthYear, getCurrentMonthStr } from '@/src/utils/date';
 import {
@@ -81,6 +82,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   income: '#059669',
   transfer: '#4F46E5',
   refund: '#0891B2',
+  investment: '#0D9488',
+  investments: '#0D9488',
   others: '#64748B',
 };
 
@@ -114,6 +117,9 @@ function renderCategoryIcon(category: string, color: string, size = 18) {
       return <ArrowLeftRight size={size} color={color} strokeWidth={2.2} />;
     case 'refund':
       return <RotateCcw size={size} color={color} strokeWidth={2.2} />;
+    case 'investment':
+    case 'investments':
+      return <TrendingUp size={size} color={color} strokeWidth={2.2} />;
     default:
       return <Package size={size} color={color} strokeWidth={2.2} />;
   }
@@ -142,9 +148,10 @@ export default function HomeScreen() {
 
   const { data: dashboard, isLoading, isRefetching, refetch: refetchDashboard } = useDashboard(selectedMonth);
   const { data: salary, refetch: refetchSalary } = useSalary();
+  const { data: budgetsData, refetch: refetchBudgets } = useBudgets(selectedMonth);
 
   const handleRefresh = async () => {
-    await Promise.all([refetchDashboard(), refetchSalary()]);
+    await Promise.all([refetchDashboard(), refetchSalary(), refetchBudgets()]);
   };
 
   // Month navigation helpers
@@ -175,11 +182,26 @@ export default function HomeScreen() {
 
   const utilizationPct = dashboard?.budgets?.overallUtilizationPercentage ?? 0;
 
-  // ── Monthly Budget Calculations ─────────────────────────
-  const availableBudget = dashboard?.budgets?.availableExpenseBudget ?? dashboard?.budgets?.totalBudget ?? 0;
-  const budgetSpent = dashboard?.budgets?.totalSpent ?? monthExpense;
-  const remainingBudget = dashboard?.budgets?.remainingBudget ?? Math.max(0, availableBudget - budgetSpent);
-  const budgetUtil = availableBudget > 0 ? Math.round((budgetSpent / availableBudget) * 100) : utilizationPct;
+  // ── Groceries Budget Only (User Requested: show only groceries budget) ────────
+  const budgetsList = Array.isArray(budgetsData)
+    ? budgetsData
+    : Array.isArray((budgetsData as any)?.budgets)
+    ? (budgetsData as any).budgets
+    : [];
+
+  const groceriesBudget = budgetsList.find(
+    (b: any) => (b.category || '').toLowerCase() === 'groceries'
+  );
+  const groceriesCategorySpend = dashboard?.categoryBreakdown?.find(
+    (c: any) => (c.category || '').toLowerCase() === 'groceries'
+  )?.spentPaise ?? 0;
+
+  const groceriesLimit = groceriesBudget?.amount ?? 0;
+  const groceriesSpent = groceriesBudget?.spent ?? groceriesCategorySpend;
+  const groceriesRemaining = Math.max(0, groceriesLimit - groceriesSpent);
+  const groceriesUtil = groceriesLimit > 0
+    ? Math.round((groceriesSpent / groceriesLimit) * 100)
+    : 0;
 
   return (
     <ScreenWrapper
@@ -404,76 +426,119 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* ── Monthly Budget Management Overview ───────────────────────────── */}
+          {/* ── Groceries Budget (Requested: only show Groceries budget, not other budgets) ── */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.rowCenter}>
-                <PieChart size={16} color="#1565C0" />
-                <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>Monthly Budget</Text>
+                <View style={[styles.txIconCircle, { width: 34, height: 34, backgroundColor: '#EA580C15', borderColor: '#EA580C30', marginRight: 8 }]}>
+                  <ShoppingCart size={16} color="#EA580C" />
+                </View>
+                <View>
+                  <Text style={styles.sectionTitle}>Groceries Budget</Text>
+                  <Text style={{ fontSize: 10, color: '#64748B', fontWeight: '600' }}>
+                    {formatMonthYear(selectedMonth)} Spending Limit
+                  </Text>
+                </View>
               </View>
-              <Pressable onPress={() => router.push('/(tabs)/budgets')}>
-                <Text style={styles.seeAllText}>Manage Budgets →</Text>
+              <Pressable
+                onPress={() => router.push('/(tabs)/budgets')}
+                style={styles.rowCenter}
+              >
+                <Text style={styles.seeAllText}>Manage Budgets</Text>
+                <ArrowRight size={13} color="#1565C0" />
               </Pressable>
             </View>
 
-            {/* 3-Column Financial Metrics Grid */}
-            <View style={styles.budgetMetricsRow}>
-              <View style={styles.budgetMetricItem}>
-                <Text style={styles.budgetMetricLabel}>EXPENSE BUDGET</Text>
-                <Text style={styles.budgetMetricVal}>{formatPaise(availableBudget)}</Text>
-                <Text style={styles.budgetMetricSub}>Income − Savings</Text>
-              </View>
-              <View style={styles.budgetMetricDivider} />
-              <View style={styles.budgetMetricItem}>
-                <Text style={styles.budgetMetricLabel}>TOTAL SPENT</Text>
-                <Text style={[styles.budgetMetricVal, { color: '#DC2626' }]}>
-                  {formatPaise(budgetSpent)}
-                </Text>
-                <Text style={styles.budgetMetricSub}>{budgetUtil}% utilized</Text>
-              </View>
-              <View style={styles.budgetMetricDivider} />
-              <View style={styles.budgetMetricItem}>
-                <Text style={styles.budgetMetricLabel}>REMAINING</Text>
-                <Text style={[styles.budgetMetricVal, { color: '#059669' }]}>
-                  {formatPaise(remainingBudget)}
-                </Text>
-                <Text style={styles.budgetMetricSub}>Available left</Text>
-              </View>
-            </View>
-
-            {/* Progress Bar */}
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${Math.min(budgetUtil, 100)}%` as `${number}%`,
-                    backgroundColor:
-                      budgetUtil > 100
-                        ? '#DC2626'
-                        : budgetUtil >= 80
-                        ? '#F59E0B'
-                        : '#10B981',
-                  },
-                ]}
-              />
-            </View>
-
-            <View style={styles.budgetFooter}>
-              <Text style={styles.budgetUtilText}>
-                {budgetUtil}% of expense budget spent
-              </Text>
-              {budgetUtil >= 80 ? (
-                <Badge
-                  label={budgetUtil > 100 ? 'Budget Exceeded' : 'Near Limit'}
-                  variant={budgetUtil > 100 ? 'critical' : 'warning'}
-                />
-              ) : (
-                <View style={styles.onTrackBadge}>
-                  <Text style={styles.onTrackBadgeText}>On Track</Text>
+            {groceriesLimit > 0 ? (
+              <>
+                {/* 3-Column Financial Metrics Grid */}
+                <View style={styles.budgetMetricsRow}>
+                  <View style={styles.budgetMetricItem}>
+                    <Text style={styles.budgetMetricLabel}>BUDGET LIMIT</Text>
+                    <Text style={styles.budgetMetricVal}>{formatPaise(groceriesLimit)}</Text>
+                    <Text style={styles.budgetMetricSub}>Allocated</Text>
+                  </View>
+                  <View style={styles.budgetMetricDivider} />
+                  <View style={styles.budgetMetricItem}>
+                    <Text style={styles.budgetMetricLabel}>SPENT</Text>
+                    <Text style={[styles.budgetMetricVal, { color: '#DC2626' }]}>
+                      {formatPaise(groceriesSpent)}
+                    </Text>
+                    <Text style={styles.budgetMetricSub}>{groceriesUtil}% utilized</Text>
+                  </View>
+                  <View style={styles.budgetMetricDivider} />
+                  <View style={styles.budgetMetricItem}>
+                    <Text style={styles.budgetMetricLabel}>REMAINING</Text>
+                    <Text style={[styles.budgetMetricVal, { color: groceriesRemaining > 0 ? '#059669' : '#DC2626' }]}>
+                      {formatPaise(groceriesRemaining)}
+                    </Text>
+                    <Text style={styles.budgetMetricSub}>Available left</Text>
+                  </View>
                 </View>
-              )}
-            </View>
+
+                {/* Progress Bar */}
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${Math.min(groceriesUtil, 100)}%` as `${number}%`,
+                        backgroundColor:
+                          groceriesUtil > 100
+                            ? '#DC2626'
+                            : groceriesUtil >= 80
+                            ? '#F59E0B'
+                            : '#10B981',
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.budgetFooter}>
+                  <Text style={styles.budgetUtilText}>
+                    {groceriesUtil}% of groceries budget spent
+                  </Text>
+                  {groceriesUtil >= 80 ? (
+                    <Badge
+                      label={groceriesUtil > 100 ? 'Budget Exceeded' : 'Near Limit'}
+                      variant={groceriesUtil > 100 ? 'critical' : 'warning'}
+                    />
+                  ) : (
+                    <View style={styles.onTrackBadge}>
+                      <Text style={styles.onTrackBadgeText}>On Track</Text>
+                    </View>
+                  )}
+                </View>
+              </>
+            ) : (
+              <View style={{ paddingVertical: 8, alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, color: '#475569', fontWeight: '600' }}>
+                    Groceries Spent this Month:
+                  </Text>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#DC2626' }}>
+                    {formatPaise(groceriesSpent)}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => router.push('/(tabs)/budgets')}
+                  style={{
+                    backgroundColor: '#1565C0',
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Plus size={14} color="#FFFFFF" strokeWidth={2.5} />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>
+                    Set Groceries Budget
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* ── Smart Insights ────────────────────────────── */}
@@ -564,7 +629,10 @@ export default function HomeScreen() {
                       onPress={() => router.push(`/transaction/${tx._id || tx.id}`)}
                       style={styles.recentTxPressable}
                     >
-                      <View style={styles.recentTxCard}>
+                      <View
+                        className="flex-row items-center justify-between w-full"
+                        style={styles.recentTxCard}
+                      >
                         {/* Category Icon */}
                         <View style={[styles.txIconCircle, { backgroundColor: catColor + '15', borderColor: catColor + '30' }]}>
                           {renderCategoryIcon(tx.category, catColor, 18)}
