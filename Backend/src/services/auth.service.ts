@@ -101,20 +101,12 @@ export async function register(
 
   const user = await User.create({ name, email, passwordHash, timezone });
 
-  // Initialize default starter accounts for immediate ledger tracking
+  // Initialize default single wallet for ledger tracking
   await Account.create([
     {
       userId: user._id,
-      name: 'Primary Bank Account',
-      type: 'bank',
-      currency: 'INR',
-      openingBalance: 0,
-      currentBalance: 0,
-    },
-    {
-      userId: user._id,
-      name: 'Cash Wallet',
-      type: 'cash',
+      name: 'Main Wallet',
+      type: 'wallet',
       currency: 'INR',
       openingBalance: 0,
       currentBalance: 0,

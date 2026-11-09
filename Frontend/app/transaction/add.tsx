@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,24 @@ export default function AddTransactionScreen() {
     () => new Date().toISOString().split('T')[0]!
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // When only one wallet exists, restrict to Expense & Income (matches reference design)
+  const availableTypes = useMemo(() => {
+    if (accounts && accounts.length > 1) {
+      return TYPES;
+    }
+    return [
+      { label: 'Expense', value: 'expense' as TransactionType, icon: '📤' },
+      { label: 'Income',  value: 'income' as TransactionType,  icon: '📥' },
+    ];
+  }, [accounts]);
+
+  // Fallback to expense if current type is not available in single-wallet mode
+  useEffect(() => {
+    if (availableTypes.length > 0 && !availableTypes.some((t) => t.value === type)) {
+      setType('expense');
+    }
+  }, [availableTypes, type]);
 
   // Set default accounts when accounts data loads
   useEffect(() => {
@@ -140,7 +158,7 @@ export default function AddTransactionScreen() {
       {/* ── Type Selector ── */}
       <View style={styles.typeTabsContainer}>
         <View style={styles.typeTabs}>
-          {TYPES.map((t) => {
+          {availableTypes.map((t) => {
             const isSelected = type === t.value;
             const color = TYPE_COLORS[t.value];
             return (
@@ -242,8 +260,29 @@ export default function AddTransactionScreen() {
         </View>
       </View>
 
-      {/* ── Account Selectors ── */}
-      {accounts && accounts.length > 0 && (
+      {/* ── Single Wallet Display (Single-Wallet Model) ── */}
+      {accounts && accounts.length === 1 && (
+        <View style={styles.singleWalletCard}>
+          <View style={styles.singleWalletLeft}>
+            <View style={styles.singleWalletIconCircle}>
+              <Wallet size={18} color="#1565C0" />
+            </View>
+            <View>
+              <Text style={styles.singleWalletLabel}>Active Wallet</Text>
+              <Text style={styles.singleWalletName}>{accounts[0].name}</Text>
+            </View>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.singleWalletBalance}>
+              {formatPaise(accounts[0].currentBalance ?? accounts[0].balance ?? 0)}
+            </Text>
+            <Text style={styles.singleWalletStatus}>● Live</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── Multi-Account Selectors (only if user configures > 1 accounts) ── */}
+      {accounts && accounts.length > 1 && (
         <View style={styles.accountCard}>
           <Text style={styles.accountSectionLabel}>
             {type === 'transfer' ? 'From Account (Source)' : 'Account'}
@@ -283,7 +322,7 @@ export default function AddTransactionScreen() {
       )}
 
       {/* Destination Account (transfer only) */}
-      {type === 'transfer' && accounts && accounts.length > 0 && (
+      {type === 'transfer' && accounts && accounts.length > 1 && (
         <View style={styles.accountCard}>
           <Text style={styles.accountSectionLabel}>To Account (Destination)</Text>
           <ScrollView
@@ -485,6 +524,62 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#0D1B3E',
     paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+  },
+
+  // Single Wallet card
+  singleWalletCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#DDE5F4',
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  singleWalletLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  singleWalletIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#EBF3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  singleWalletLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7B93C8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  singleWalletName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0D1B3E',
+  },
+  singleWalletBalance: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#1565C0',
+  },
+  singleWalletStatus: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#10B981',
+    marginTop: 1,
   },
 
   // Account cards

@@ -68,39 +68,19 @@ async function seedDatabase(): Promise<void> {
     console.log(`  ✓ User already existed. Password updated for: ${user.email} (ID: ${user._id})`);
   }
 
-  // 3. Set up initial accounts if user has none
+  // 3. Set up initial account if user has none (Single Wallet Model)
   const existingAccounts = await Account.find({ userId: user._id, isArchived: false });
   if (existingAccounts.length === 0) {
-    console.log('\n💳 Setting up default accounts...');
-    const bankAccount = await Account.create({
+    console.log('\n💳 Setting up default single wallet...');
+    const mainWallet = await Account.create({
       userId: user._id,
-      name: 'Primary Bank Account',
-      type: 'bank',
+      name: 'Main Wallet',
+      type: 'wallet',
       currency: 'INR',
-      openingBalance: 5000000, // ₹50,000
-      currentBalance: 5000000,
+      openingBalance: 2485000, // ₹24,850 matching reference UI
+      currentBalance: 2485000,
     });
-    console.log(`  ✓ Created account: ${bankAccount.name} (₹50,000.00)`);
-
-    const cashWallet = await Account.create({
-      userId: user._id,
-      name: 'Cash Wallet',
-      type: 'cash',
-      currency: 'INR',
-      openingBalance: 1000000, // ₹10,000
-      currentBalance: 1000000,
-    });
-    console.log(`  ✓ Created account: ${cashWallet.name} (₹10,000.00)`);
-
-    const savingsAccount = await Account.create({
-      userId: user._id,
-      name: 'Savings Account',
-      type: 'savings',
-      currency: 'INR',
-      openingBalance: 10000000, // ₹1,00,000
-      currentBalance: 10000000,
-    });
-    console.log(`  ✓ Created account: ${savingsAccount.name} (₹1,00,000.00)`);
+    console.log(`  ✓ Created wallet: ${mainWallet.name} (₹24,850.00)`);
   } else {
     console.log(`\n💳 Found ${existingAccounts.length} existing accounts for ${targetEmail}.`);
   }
