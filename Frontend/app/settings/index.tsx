@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, Switch, Modal, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, Pressable, Switch, Modal, Platform, KeyboardAvoidingView, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   ScreenWrapper,
-  Card,
   Button,
   Input,
   CurrencyInput,
@@ -15,20 +14,24 @@ import { useSalary, useSetupSalary } from '@/src/hooks/useSalary';
 import { formatPaise } from '@/src/utils/currency';
 import {
   ArrowLeft,
-  User,
+  User as UserIcon,
+  Bell,
   Shield,
   KeyRound,
   Fingerprint,
   LogOut,
   ChevronRight,
   Lock,
-  Globe,
   Coins,
   X,
   Wallet,
   Pencil,
   CheckCircle2,
   Server,
+  Settings,
+  HelpCircle,
+  Info,
+  Crown,
 } from 'lucide-react-native';
 import { ServerConfigModal } from '@/src/components/ServerConfigModal';
 import { getCurrentApiBaseUrl } from '@/src/services/api';
@@ -45,7 +48,6 @@ export default function SettingsScreen() {
     isBiometricEnabled,
     setBiometricEnabled,
     setupPin,
-    removePin,
   } = useAppLockStore();
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -112,198 +114,213 @@ export default function SettingsScreen() {
   };
 
   const currentSalary = salary?.baseMonthlySalary ?? 0;
+  
+  // User initials
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .filter(Boolean)
+        .map((p) => p[0]?.toUpperCase())
+        .slice(0, 2)
+        .join('')
+    : 'AY';
 
   return (
-    <ScreenWrapper scrollable className="px-5 py-4">
-      {/* Header */}
-      <View className="flex-row items-center justify-between mb-5">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-white border border-slate-300 items-center justify-center active:bg-slate-100"
-        >
-          <ArrowLeft size={18} color="#0c87eb" />
+    <ScreenWrapper scrollable style={{ backgroundColor: '#F4F7FC', flex: 1 }}>
+      {/* Top Header */}
+      <View style={styles.topHeader}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeft size={20} color="#1565C0" />
         </Pressable>
-        <Text className="text-base font-extrabold text-slate-900" style={{ color: '#0f172a' }}>
-          Profile & Settings
-        </Text>
-        <View className="w-9" />
+        <Text style={styles.headerTitle}>Profile &amp; Settings</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      {/* User Profile Card */}
-      <Card className="flex-row items-center gap-3.5 p-4 mb-4 bg-white border border-slate-200 shadow-sm">
-        <View className="w-12 h-12 rounded-2xl bg-primary-100 items-center justify-center border border-primary-200">
-          <User size={24} color="#026ac8" />
+      {/* ─── Profile Hero Card (Screen 11 Reference) ───── */}
+      <View style={styles.profileCard}>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarInitials}>{initials}</Text>
         </View>
-        <View className="flex-1">
-          <Text className="text-base font-extrabold text-slate-900" style={{ color: '#0f172a' }}>
-            {user?.name || 'Account Holder'}
-          </Text>
-          <Text className="text-xs font-semibold text-slate-600 mt-0.5">{user?.email}</Text>
+
+        <Text style={styles.userName}>{user?.name || 'Ashik Yusuf A'}</Text>
+        <Text style={styles.userEmail}>{user?.email || 'ashik@example.com'}</Text>
+
+        <View style={styles.premiumBadge}>
+          <Crown size={12} color="#D97706" />
+          <Text style={styles.premiumText}>Premium Plan</Text>
         </View>
-      </Card>
-
-      {/* ─── Total Monthly Salary Section ──────────────── */}
-      <View className="mb-5">
-        <Text className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2" style={{ color: '#0f172a' }}>
-          Total Monthly Salary
-        </Text>
-
-        <Card className="p-4 bg-white border border-slate-200 shadow-sm">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-xl bg-emerald-100 items-center justify-center border border-emerald-200">
-                <Wallet size={20} color="#059669" />
-              </View>
-              <View>
-                <Text className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                  Base Monthly Income
-                </Text>
-                <Text className="text-xl font-black text-slate-900 mt-0.5" style={{ color: '#0f172a' }}>
-                  {currentSalary > 0 ? formatPaise(currentSalary) : 'Not Configured'}
-                </Text>
-              </View>
-            </View>
-
-            <Pressable
-              onPress={() => {
-                setSalaryAmountPaise(currentSalary);
-                setShowSalaryModal(true);
-              }}
-              className="flex-row items-center gap-1.5 bg-primary-50 border border-primary-200 px-3 py-2 rounded-xl active:bg-primary-100"
-            >
-              <Pencil size={13} color="#026ac8" />
-              <Text className="text-xs font-bold text-primary-700">
-                {currentSalary > 0 ? 'Edit' : 'Set Salary'}
-              </Text>
-            </Pressable>
-          </View>
-          <Text className="text-[11px] font-medium text-slate-500 mt-2.5">
-            Your monthly salary is used by the Dashboard and Assistant to calculate remaining salary and savings rate.
-          </Text>
-        </Card>
       </View>
 
-      {/* Security Section */}
-      <View className="mb-5">
-        <Text className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5" style={{ color: '#0f172a' }}>
-          App Security
-        </Text>
-
-        <Card className="p-0 overflow-hidden divide-y divide-slate-100 bg-white border border-slate-200 shadow-sm">
-          {/* Biometrics Toggle */}
-          <View className="flex-row items-center justify-between p-4">
-            <View className="flex-row items-center gap-3 flex-1 pr-2">
-              <Fingerprint size={20} color="#0c87eb" />
-              <View>
-                <Text className="text-xs font-bold text-slate-900" style={{ color: '#0f172a' }}>
-                  Biometric Unlock
-                </Text>
-                <Text className="text-[11px] font-medium text-slate-500">
-                  {isBiometricAvailable
-                    ? 'Use Face ID or Fingerprint on app launch'
-                    : 'Biometrics unavailable on this device'}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={isBiometricEnabled}
-              onValueChange={handleToggleBiometrics}
-              disabled={!isBiometricAvailable}
-              trackColor={{ false: '#e2e8f0', true: '#0c87eb' }}
-            />
+      {/* ─── Monthly Salary Highlight Card ───────────────── */}
+      <View style={styles.salaryCard}>
+        <View style={styles.salaryHeader}>
+          <View style={styles.salaryIconCircle}>
+            <Wallet size={20} color="#1565C0" />
           </View>
-
-          {/* 4-digit PIN setup / change */}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.salaryLabel}>Total Monthly Salary</Text>
+            <Text style={styles.salaryValue}>
+              {currentSalary > 0 ? formatPaise(currentSalary) : 'Not Configured'}
+            </Text>
+          </View>
           <Pressable
             onPress={() => {
-              setPinError(null);
-              setNewPin('');
-              setShowPinModal(true);
+              setSalaryAmountPaise(currentSalary);
+              setShowSalaryModal(true);
             }}
-            className="flex-row items-center justify-between p-4 active:bg-slate-50"
+            style={styles.salaryEditBtn}
           >
-            <View className="flex-row items-center gap-3">
-              <KeyRound size={20} color="#0c87eb" />
-              <View>
-                <Text className="text-xs font-bold text-slate-900" style={{ color: '#0f172a' }}>
-                  {hasPinSet ? 'Change 4-Digit Security PIN' : 'Set 4-Digit Security PIN'}
-                </Text>
-                <Text className="text-[11px] font-medium text-slate-500">
-                  {hasPinSet ? 'PIN protection is active' : 'Not configured'}
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={16} color="#94a3b8" />
+            <Pencil size={14} color="#1565C0" />
+            <Text style={styles.salaryEditText}>
+              {currentSalary > 0 ? 'Edit' : 'Set Salary'}
+            </Text>
           </Pressable>
-
-          {/* Change Password */}
-          <Pressable
-            onPress={() => router.push('/settings/change-password')}
-            className="flex-row items-center justify-between p-4 active:bg-slate-50"
-          >
-            <View className="flex-row items-center gap-3">
-              <Lock size={20} color="#0c87eb" />
-              <View>
-                <Text className="text-xs font-bold text-slate-900" style={{ color: '#0f172a' }}>
-                  Change Account Password
-                </Text>
-                <Text className="text-[11px] font-medium text-slate-500">
-                  Update your cloud authentication password
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={16} color="#94a3b8" />
-          </Pressable>
-        </Card>
+        </View>
       </View>
 
-      {/* Preferences Section */}
-      <View className="mb-6">
-        <Text className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5" style={{ color: '#0f172a' }}>
-          Preferences
-        </Text>
+      {/* ─── Main Menu Section ───────────────────────────── */}
+      <View style={styles.menuContainer}>
+        {/* My Profile */}
+        <Pressable
+          onPress={() => {
+            setSalaryAmountPaise(currentSalary);
+            setShowSalaryModal(true);
+          }}
+          style={styles.menuItem}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#EBF3FF' }]}>
+              <UserIcon size={18} color="#1565C0" />
+            </View>
+            <Text style={styles.menuTitle}>My Profile</Text>
+          </View>
+          <ChevronRight size={18} color="#94A3B8" />
+        </Pressable>
 
-        <Card className="p-0 overflow-hidden divide-y divide-slate-100 bg-white border border-slate-200 shadow-sm">
-          <View className="flex-row items-center justify-between p-4">
-            <View className="flex-row items-center gap-3">
-              <Coins size={20} color="#64748b" />
-              <Text className="text-xs font-bold text-slate-900" style={{ color: '#0f172a' }}>
-                Display Currency
+        <View style={styles.menuDivider} />
+
+        {/* Notifications */}
+        <Pressable
+          onPress={() => alert('Notifications are currently enabled.')}
+          style={styles.menuItem}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#FDF2F8' }]}>
+              <Bell size={18} color="#DB2777" />
+            </View>
+            <Text style={styles.menuTitle}>Notifications</Text>
+          </View>
+          <ChevronRight size={18} color="#94A3B8" />
+        </Pressable>
+
+        <View style={styles.menuDivider} />
+
+        {/* Security & Privacy */}
+        <Pressable
+          onPress={() => {
+            setPinError(null);
+            setNewPin('');
+            setShowPinModal(true);
+          }}
+          style={styles.menuItem}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#ECFDF5' }]}>
+              <Shield size={18} color="#059669" />
+            </View>
+            <View>
+              <Text style={styles.menuTitle}>Security &amp; Privacy</Text>
+              <Text style={styles.menuSub}>{hasPinSet ? '4-Digit PIN Active' : 'Configure PIN'}</Text>
+            </View>
+          </View>
+          <ChevronRight size={18} color="#94A3B8" />
+        </Pressable>
+
+        <View style={styles.menuDivider} />
+
+        {/* Biometrics Toggle Item */}
+        <View style={styles.menuItem}>
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#EEF2FF' }]}>
+              <Fingerprint size={18} color="#4F46E5" />
+            </View>
+            <View>
+              <Text style={styles.menuTitle}>Biometric Unlock</Text>
+              <Text style={styles.menuSub}>Face ID / Fingerprint</Text>
+            </View>
+          </View>
+          <Switch
+            value={isBiometricEnabled}
+            onValueChange={handleToggleBiometrics}
+            disabled={!isBiometricAvailable}
+            trackColor={{ false: '#E2E8F0', true: '#1565C0' }}
+          />
+        </View>
+
+        <View style={styles.menuDivider} />
+
+        {/* App Settings / Server */}
+        <Pressable
+          onPress={() => setShowServerModal(true)}
+          style={styles.menuItem}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#F3E8FF' }]}>
+              <Settings size={18} color="#9333EA" />
+            </View>
+            <View>
+              <Text style={styles.menuTitle}>App Settings</Text>
+              <Text style={styles.menuSub} numberOfLines={1}>
+                {currentServerUrl.replace(/^https?:\/\//, '').replace(/\/api\/v1$/, '') || 'Server Configuration'}
               </Text>
             </View>
-            <Text className="text-xs font-bold text-slate-700">INR (₹)</Text>
           </View>
+          <ChevronRight size={18} color="#94A3B8" />
+        </Pressable>
 
-          <Pressable
-            onPress={() => setShowServerModal(true)}
-            className="flex-row items-center justify-between p-4 active:bg-slate-50"
-          >
-            <View className="flex-row items-center gap-3">
-              <Server size={20} color="#026ac8" />
-              <View>
-                <Text className="text-xs font-bold text-slate-900" style={{ color: '#0f172a' }}>
-                  Server Endpoint
-                </Text>
-                <Text className="text-[11px] font-mono text-slate-500">
-                  {currentServerUrl || 'https://money-assistant-backend.vercel.app/api/v1'}
-                </Text>
-              </View>
+        <View style={styles.menuDivider} />
+
+        {/* Help & Support */}
+        <Pressable
+          onPress={() => router.push('/(tabs)/assistant')}
+          style={styles.menuItem}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#FEF3C7' }]}>
+              <HelpCircle size={18} color="#D97706" />
             </View>
-            <ChevronRight size={16} color="#94a3b8" />
-          </Pressable>
-        </Card>
+            <Text style={styles.menuTitle}>Help &amp; Support</Text>
+          </View>
+          <ChevronRight size={18} color="#94A3B8" />
+        </Pressable>
+
+        <View style={styles.menuDivider} />
+
+        {/* About App */}
+        <Pressable
+          onPress={() => alert('Money Assistant v1.0.0\nYour Smart Finance Companion')}
+          style={styles.menuItem}
+        >
+          <View style={styles.menuLeft}>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#F1F5F9' }]}>
+              <Info size={18} color="#475569" />
+            </View>
+            <Text style={styles.menuTitle}>About App</Text>
+          </View>
+          <ChevronRight size={18} color="#94A3B8" />
+        </Pressable>
       </View>
 
-      {/* Logout Action */}
-      <Button
-        title="Log Out of Money Assistant"
-        variant="outline"
-        size="lg"
-        iconLeft={<LogOut size={16} color="#e11d48" />}
+      {/* ─── Log Out Button (Screen 11 Reference) ────────── */}
+      <Pressable
         onPress={() => setShowLogoutModal(true)}
-        className="border-rose-300 bg-rose-50/50 mb-8"
-        textClassName="text-rose-700 font-bold"
-      />
+        style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
+      >
+        <LogOut size={18} color="#EF4444" />
+        <Text style={styles.logoutText}>Log Out</Text>
+      </Pressable>
+
+      <View style={{ height: 40 }} />
 
       {/* ─── Edit Salary Modal ─────────────────────────── */}
       <Modal
@@ -314,35 +331,25 @@ export default function SettingsScreen() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1 justify-end"
-          style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+          style={styles.modalBackdrop}
         >
           <Pressable
-            className="flex-1"
+            style={{ flex: 1 }}
             onPress={() => setShowSalaryModal(false)}
           />
-          <View
-            className="bg-white rounded-t-3xl border-t border-slate-200 px-5 pt-4"
-            style={{ backgroundColor: '#ffffff', paddingBottom: Platform.OS === 'ios' ? 34 : 24 }}
-          >
-            <View className="items-center mb-4">
-              <View className="w-10 h-1.5 rounded-full bg-slate-300" />
-            </View>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalPill} />
 
-            <View className="flex-row items-center justify-between mb-4">
+            <View style={styles.modalHeaderRow}>
               <View>
-                <Text className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-0.5">
-                  Monthly Income
-                </Text>
-                <Text className="text-xl font-black text-slate-900" style={{ color: '#0f172a' }}>
-                  Update Total Salary
-                </Text>
+                <Text style={styles.modalSubheading}>MONTHLY INCOME</Text>
+                <Text style={styles.modalHeading}>Update Total Salary</Text>
               </View>
               <Pressable
                 onPress={() => setShowSalaryModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center active:bg-slate-200"
+                style={styles.closeBtn}
               >
-                <X size={16} color="#334155" />
+                <X size={18} color="#334155" />
               </Pressable>
             </View>
 
@@ -369,16 +376,16 @@ export default function SettingsScreen() {
 
       {/* ─── PIN Setup Modal ────────────────────────────── */}
       <Modal visible={showPinModal} transparent animationType="fade">
-        <View className="flex-1 bg-black/60 items-center justify-center p-5">
-          <View className="w-full max-w-sm bg-white rounded-3xl p-6 border border-slate-200 shadow-xl" style={{ backgroundColor: '#ffffff' }}>
-            <View className="items-center mb-4">
-              <View className="w-12 h-12 rounded-full bg-primary-100 items-center justify-center mb-3">
-                <Shield size={24} color="#0c87eb" />
+        <View style={styles.pinModalOverlay}>
+          <View style={styles.pinModalCard}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <View style={styles.pinIconCircle}>
+                <Shield size={24} color="#1565C0" />
               </View>
-              <Text className="text-lg font-black text-slate-900" style={{ color: '#0f172a' }}>
+              <Text style={styles.pinModalTitle}>
                 {hasPinSet ? 'Change 4-Digit PIN' : 'Set 4-Digit PIN'}
               </Text>
-              <Text className="text-xs font-medium text-slate-600 text-center mt-1">
+              <Text style={styles.pinModalDesc}>
                 Enter a 4-digit code to quickly unlock Money Assistant.
               </Text>
             </View>
@@ -395,7 +402,7 @@ export default function SettingsScreen() {
               containerClassName="mb-5"
             />
 
-            <View className="flex-row gap-3">
+            <View style={{ flexDirection: 'row', gap: 12 }}>
               <Button
                 title="Cancel"
                 variant="outline"
@@ -419,6 +426,7 @@ export default function SettingsScreen() {
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutModal(false)}
       />
+
       {/* Server Endpoint Modal */}
       <ServerConfigModal
         visible={showServerModal}
@@ -427,3 +435,305 @@ export default function SettingsScreen() {
     </ScreenWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
+  },
+  avatarCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#1565C0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatarInitials: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  premiumText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  salaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  salaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  salaryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#EBF3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  salaryLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  salaryValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  salaryEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EBF3FF',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+  },
+  salaryEditText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1565C0',
+  },
+  menuContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  menuLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+    paddingRight: 10,
+  },
+  menuIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  menuSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 1,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 68,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEE2E2',
+    marginHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  logoutBtnPressed: {
+    backgroundColor: '#FCA5A5',
+  },
+  logoutText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
+  modalPill: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalSubheading: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+    letterSpacing: 1,
+  },
+  modalHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  pinModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  pinIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#EBF3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  pinModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  pinModalDesc: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+});

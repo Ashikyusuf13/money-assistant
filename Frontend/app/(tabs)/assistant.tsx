@@ -7,11 +7,11 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import {
   ScreenWrapper,
   Card,
-  Badge,
   Button,
   LoadingSpinner,
 } from '@/src/components/ui';
@@ -30,17 +30,24 @@ import {
   Bot,
   User as UserIcon,
   FileDown,
-  Printer,
   TrendingUp,
   TrendingDown,
-  PieChart,
-  ShieldCheck,
-  CheckCircle2,
-  AlertTriangle,
-  Wallet,
   MessageSquare,
   FileText,
 } from 'lucide-react-native';
+
+// ─── Palette ──────────────────────────────────────────────
+const PRIMARY = '#1565C0';
+const PRIMARY_LIGHT = '#E3ECFA';
+const BG = '#F0F4FF';
+const BOT_BUBBLE_BG = '#F8FAFF';
+const BOT_BUBBLE_BORDER = '#1565C0';
+const USER_BUBBLE = '#1565C0';
+const CARD_BG = '#FFFFFF';
+const TEXT_MAIN = '#0D1B3E';
+const TEXT_MUTED = '#6B7A99';
+const PILL_BORDER = '#1565C0';
+// ──────────────────────────────────────────────────────────
 
 interface ChatMessage {
   id: string;
@@ -256,105 +263,81 @@ export default function AssistantScreen() {
   healthScore = Math.min(100, Math.max(20, healthScore));
 
   return (
-    <ScreenWrapper className="px-4 pt-2 pb-2">
-      {/* Top Header Bar */}
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center gap-2">
-          <View className="w-8 h-8 rounded-xl bg-purple-600 items-center justify-center shadow-sm">
-            <Sparkles size={18} color="#ffffff" />
+    <ScreenWrapper style={styles.screenBg}>
+      {/* ── Blue Header ───────────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIconBox}>
+            <Sparkles size={20} color="#ffffff" />
           </View>
           <View>
-            <Text className="text-base font-black text-slate-900 dark:text-slate-100">
-              Money Intelligence Hub
-            </Text>
-            <Text className="text-[10px] text-slate-400 font-medium">
-              Verified Manual Calculations & Instant PDF Reports
-            </Text>
+            <Text style={styles.headerTitle}>AI Assistant ✨</Text>
+            <Text style={styles.headerSub}>Your smart financial companion</Text>
           </View>
         </View>
-
-        {/* Download PDF Button in Header */}
-        <Pressable
-          onPress={handleDownloadPDF}
-          className="flex-row items-center gap-1.5 bg-slate-900 dark:bg-slate-100 px-3 py-1.5 rounded-xl active:opacity-80 shadow-sm"
-        >
-          <FileDown size={14} color={Platform.OS === 'web' ? '#ffffff' : '#0c87eb'} />
-          <Text className="text-xs font-bold text-white dark:text-slate-900">
-            PDF Report
-          </Text>
+        <Pressable onPress={handleDownloadPDF} style={styles.pdfBtn}>
+          <FileDown size={14} color="#1565C0" />
+          <Text style={styles.pdfBtnText}>PDF</Text>
         </Pressable>
       </View>
 
-      {/* Segmented View Tabs */}
-      <View className="flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-3">
+      {/* ── Greeting Card ─────────────────────────────── */}
+      <View style={styles.greetCard}>
+        <Text style={styles.greetText}>Hi Ashik! 👋</Text>
+        <Text style={styles.greetSub}>How can I help you today?</Text>
+      </View>
+
+      {/* ── Segmented Tabs ────────────────────────────── */}
+      <View style={styles.tabRow}>
         <Pressable
           onPress={() => setActiveTab('chat')}
-          className={`flex-1 py-2 rounded-xl flex-row items-center justify-center gap-1.5 ${
-            activeTab === 'chat' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''
-          }`}
+          style={[styles.tabBtn, activeTab === 'chat' && styles.tabBtnActive]}
         >
-          <MessageSquare
-            size={14}
-            color={activeTab === 'chat' ? '#8b5cf6' : '#64748b'}
-          />
-          <Text
-            className={`text-xs font-bold ${
-              activeTab === 'chat' ? 'text-purple-600' : 'text-slate-500'
-            }`}
-          >
+          <MessageSquare size={13} color={activeTab === 'chat' ? '#ffffff' : PRIMARY} />
+          <Text style={[styles.tabLabel, activeTab === 'chat' && styles.tabLabelActive]}>
             Ask Assistant
           </Text>
         </Pressable>
-
         <Pressable
           onPress={() => setActiveTab('report')}
-          className={`flex-1 py-2 rounded-xl flex-row items-center justify-center gap-1.5 ${
-            activeTab === 'report' ? 'bg-white dark:bg-slate-900 shadow-sm' : ''
-          }`}
+          style={[styles.tabBtn, activeTab === 'report' && styles.tabBtnActive]}
         >
-          <FileText
-            size={14}
-            color={activeTab === 'report' ? '#8b5cf6' : '#64748b'}
-          />
-          <Text
-            className={`text-xs font-bold ${
-              activeTab === 'report' ? 'text-purple-600' : 'text-slate-500'
-            }`}
-          >
+          <FileText size={13} color={activeTab === 'report' ? '#ffffff' : PRIMARY} />
+          <Text style={[styles.tabLabel, activeTab === 'report' && styles.tabLabelActive]}>
             Automated Report
           </Text>
         </Pressable>
       </View>
 
-      {/* TAB 1: INTERACTIVE ASSISTANT */}
+      {/* ════════════════════════════════════════════════
+          TAB 1 — CHAT
+         ════════════════════════════════════════════════ */}
       {activeTab === 'chat' && (
-        <View className="flex-1">
-          {/* Suggested Questions Chips (Horizontal) */}
-          <View className="mb-2.5">
+        <View style={{ flex: 1 }}>
+          {/* Suggested question pills */}
+          <View style={styles.pillsWrapper}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-2 py-1"
+              contentContainerStyle={styles.pillsContainer}
             >
               {SUGGESTED_QUESTIONS.map((q, idx) => (
                 <Pressable
                   key={idx}
                   onPress={() => handleSend(q)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-full shadow-sm active:bg-slate-50"
+                  style={styles.pill}
                 >
-                  <Text className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                    {q}
-                  </Text>
+                  <Text style={styles.pillText}>{q}</Text>
                 </Pressable>
               ))}
             </ScrollView>
           </View>
 
-          {/* Chat Messages ScrollArea */}
+          {/* Chat scroll area */}
           <ScrollView
             ref={scrollViewRef}
-            className="flex-1 mb-2.5"
-            contentContainerClassName="gap-3 pb-2"
+            style={{ flex: 1, marginBottom: 10 }}
+            contentContainerStyle={{ gap: 14, paddingBottom: 8 }}
             showsVerticalScrollIndicator={false}
           >
             {messages.map((m) => {
@@ -362,41 +345,31 @@ export default function AssistantScreen() {
               return (
                 <View
                   key={m.id}
-                  className={`flex-row gap-2.5 max-w-[85%] ${
-                    isUser ? 'self-end flex-row-reverse' : 'self-start'
-                  }`}
+                  style={[
+                    styles.msgRow,
+                    isUser ? styles.msgRowUser : styles.msgRowBot,
+                  ]}
                 >
-                  <View
-                    className={`w-7 h-7 rounded-full items-center justify-center ${
-                      isUser ? 'bg-primary-600' : 'bg-purple-100 dark:bg-purple-950'
-                    }`}
-                  >
+                  {/* Avatar */}
+                  <View style={[styles.avatar, isUser ? styles.avatarUser : styles.avatarBot]}>
                     {isUser ? (
                       <UserIcon size={14} color="#ffffff" />
                     ) : (
-                      <Bot size={15} color="#8b5cf6" />
+                      <Bot size={15} color="#1565C0" />
                     )}
                   </View>
 
+                  {/* Bubble */}
                   <View
-                    className={`p-3.5 rounded-2xl ${
-                      isUser
-                        ? 'bg-primary-600 rounded-tr-none'
-                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-tl-none shadow-sm'
-                    }`}
+                    style={[
+                      styles.bubble,
+                      isUser ? styles.bubbleUser : styles.bubbleBot,
+                    ]}
                   >
-                    <Text
-                      className={`text-xs leading-relaxed ${
-                        isUser ? 'text-white font-medium' : 'text-slate-800 dark:text-slate-200'
-                      }`}
-                    >
+                    <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
                       {m.text}
                     </Text>
-                    <Text
-                      className={`text-[9px] mt-1.5 ${
-                        isUser ? 'text-primary-200 text-right' : 'text-slate-400'
-                      }`}
-                    >
+                    <Text style={[styles.bubbleTime, isUser ? styles.bubbleTimeUser : styles.bubbleTimBot]}>
                       {m.timestamp}
                     </Text>
                   </View>
@@ -404,53 +377,51 @@ export default function AssistantScreen() {
               );
             })}
 
+            {/* Typing indicator */}
             {askMutation.isPending && (
-              <View className="flex-row items-center gap-2.5 self-start max-w-[80%]">
-                <View className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-950 items-center justify-center">
-                  <Bot size={15} color="#8b5cf6" />
+              <View style={[styles.msgRow, styles.msgRowBot]}>
+                <View style={[styles.avatar, styles.avatarBot]}>
+                  <Bot size={15} color="#1565C0" />
                 </View>
-                <View className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none shadow-sm flex-row items-center gap-2">
-                  <Sparkles size={14} color="#8b5cf6" />
-                  <Text className="text-xs text-slate-500 font-medium">
-                    Computing verified financial ledger figures...
-                  </Text>
+                <View style={[styles.bubble, styles.bubbleBot, styles.typingBubble]}>
+                  <Sparkles size={13} color={PRIMARY} />
+                  <Text style={styles.typingText}>Computing financial data…</Text>
                 </View>
               </View>
             )}
           </ScrollView>
 
-          {/* Input Message Bar with Clean Styling */}
+          {/* Input bar */}
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           >
-            <View className="flex-row items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm">
+            <View style={styles.inputBar}>
               <TextInput
-                className="flex-1 px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                placeholder="Ask about spending, salary, budgets, goals..."
-                placeholderTextColor="#94a3b8"
+                style={styles.input}
+                placeholder="Ask about spending, salary, budgets, goals…"
+                placeholderTextColor="#9DAAB8"
                 value={inputText}
                 onChangeText={setInputText}
                 onSubmitEditing={() => handleSend()}
                 returnKeyType="send"
-                style={
-                  Platform.OS === 'web'
-                    ? ({ outlineStyle: 'none', borderStyle: 'none', outline: 'none' } as any)
-                    : undefined
-                }
+                {...(Platform.OS === 'web'
+                  ? ({ style: [styles.input, { outlineStyle: 'none' } as any] } as any)
+                  : {})}
               />
               <Pressable
                 onPress={() => handleSend()}
                 disabled={!inputText.trim() || askMutation.isPending}
-                className={`w-9 h-9 rounded-xl items-center justify-center ${
+                style={[
+                  styles.sendBtn,
                   inputText.trim() && !askMutation.isPending
-                    ? 'bg-purple-600 active:bg-purple-700'
-                    : 'bg-slate-100 dark:bg-slate-800'
-                }`}
+                    ? styles.sendBtnActive
+                    : styles.sendBtnDisabled,
+                ]}
               >
                 <Send
                   size={16}
-                  color={inputText.trim() && !askMutation.isPending ? '#ffffff' : '#94a3b8'}
+                  color={inputText.trim() && !askMutation.isPending ? '#ffffff' : '#9DAAB8'}
                 />
               </Pressable>
             </View>
@@ -458,190 +429,136 @@ export default function AssistantScreen() {
         </View>
       )}
 
-      {/* TAB 2: AUTOMATED REPORT & AUDIT VIEW */}
+      {/* ════════════════════════════════════════════════
+          TAB 2 — AUTOMATED REPORT
+         ════════════════════════════════════════════════ */}
       {activeTab === 'report' && (
-        <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* Health Score Banner */}
-          <Card className="p-4 mb-4 bg-slate-900 border-slate-800 shadow-md">
-            <View className="flex-row justify-between items-center">
-              <View>
-                <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Automated Financial Audit
-                </Text>
-                <Text className="text-xl font-black text-white mt-0.5">
-                  Health Score: {healthScore}/100
-                </Text>
-                <Text className="text-xs text-emerald-400 font-bold mt-0.5">
-                  {healthScore >= 80 ? '✓ Excellent Financial Posture' : healthScore >= 60 ? '✓ Balanced Cash Flow' : '! Caution: Expenses High'}
-                </Text>
-              </View>
-
-              <Pressable
-                onPress={handleDownloadPDF}
-                className="bg-emerald-600 px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 active:bg-emerald-700 shadow-sm"
-              >
-                <FileDown size={14} color="#ffffff" />
-                <Text className="text-xs font-bold text-white">Save PDF</Text>
-              </Pressable>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          {/* Health Score banner */}
+          <View style={styles.reportBanner}>
+            <View>
+              <Text style={styles.reportBannerLabel}>Automated Financial Audit</Text>
+              <Text style={styles.reportBannerScore}>Health Score: {healthScore}/100</Text>
+              <Text style={styles.reportBannerStatus}>
+                {healthScore >= 80
+                  ? '✓ Excellent Financial Posture'
+                  : healthScore >= 60
+                  ? '✓ Balanced Cash Flow'
+                  : '! Caution: Expenses High'}
+              </Text>
             </View>
-          </Card>
+            <Pressable onPress={handleDownloadPDF} style={styles.savePdfBtn}>
+              <FileDown size={14} color="#ffffff" />
+              <Text style={styles.savePdfText}>Save PDF</Text>
+            </Pressable>
+          </View>
 
-          {/* KPI Matrix */}
-          <View className="flex-row gap-3 mb-4">
-            <Card className="flex-1 p-3.5">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase">
-                Tracked Wealth
-              </Text>
-              <Text className="text-lg font-black text-slate-900 dark:text-slate-100 mt-1">
-                {formatPaise(netWealthPaise)}
-              </Text>
-            </Card>
-
-            <Card className="flex-1 p-3.5">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase">
-                Net Cash Flow
-              </Text>
-              <Text
-                className={`text-lg font-black mt-1 ${
-                  netCashFlowPaise >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                }`}
-              >
+          {/* KPI row */}
+          <View style={styles.kpiRow}>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiLabel}>Tracked Wealth</Text>
+              <Text style={styles.kpiValue}>{formatPaise(netWealthPaise)}</Text>
+            </View>
+            <View style={styles.kpiCard}>
+              <Text style={styles.kpiLabel}>Net Cash Flow</Text>
+              <Text style={[styles.kpiValue, { color: netCashFlowPaise >= 0 ? '#10b981' : '#ef4444' }]}>
                 {netCashFlowPaise >= 0 ? '+' : ''}
                 {formatPaise(netCashFlowPaise)}
               </Text>
-            </Card>
+            </View>
           </View>
 
           {/* Inflow vs Outflow */}
-          <Card className="p-4 mb-4">
-            <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-              Monthly Inflow vs Outflow ({currentMonth})
-            </Text>
+          <View style={styles.reportCard}>
+            <Text style={styles.reportCardTitle}>Monthly Inflow vs Outflow ({currentMonth})</Text>
 
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center gap-2">
+            <View style={styles.reportRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <TrendingUp size={16} color="#10b981" />
-                <Text className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Total Income
-                </Text>
+                <Text style={styles.reportRowLabel}>Total Income</Text>
               </View>
-              <Text className="text-sm font-black text-emerald-600">
-                {formatPaise(incomePaise)}
-              </Text>
+              <Text style={[styles.reportRowValue, { color: '#10b981' }]}>{formatPaise(incomePaise)}</Text>
             </View>
 
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center gap-2">
-                <TrendingDown size={16} color="#f43f5e" />
-                <Text className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Operating Expenses
-                </Text>
+            <View style={[styles.reportRow, { marginBottom: 12 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TrendingDown size={16} color="#ef4444" />
+                <Text style={styles.reportRowLabel}>Operating Expenses</Text>
               </View>
-              <Text className="text-sm font-black text-rose-600">
-                {formatPaise(expensePaise)}
-              </Text>
+              <Text style={[styles.reportRowValue, { color: '#ef4444' }]}>{formatPaise(expensePaise)}</Text>
             </View>
 
-            {/* Retention Bar */}
             {baseSalaryPaise > 0 && (
-              <View className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-[11px] font-semibold text-slate-500">
-                    Salary Retention Rate
-                  </Text>
-                  <Text className="text-[11px] font-bold text-emerald-600">
-                    {retentionPct}% Saved ({formatPaise(remainingSalaryPaise)} left)
+              <View style={styles.retentionSection}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={styles.retentionLabel}>Salary Retention Rate</Text>
+                  <Text style={[styles.retentionLabel, { color: '#10b981', fontWeight: '700' }]}>
+                    {retentionPct}% ({formatPaise(remainingSalaryPaise)} left)
                   </Text>
                 </View>
-                <View className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <View
-                    className="h-full bg-emerald-500 rounded-full"
-                    style={{ width: `${Math.min(retentionPct, 100)}%` }}
-                  />
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${Math.min(retentionPct, 100)}%`, backgroundColor: '#10b981' }]} />
                 </View>
               </View>
             )}
-          </Card>
+          </View>
 
-          {/* Category Spending Breakdown */}
+          {/* Category breakdown */}
           {dashboard?.categoryBreakdown && dashboard.categoryBreakdown.length > 0 && (
-            <Card className="p-4 mb-4">
-              <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                Top Spending Categories
-              </Text>
-
-              <View className="gap-3">
+            <View style={styles.reportCard}>
+              <Text style={styles.reportCardTitle}>Top Spending Categories</Text>
+              <View style={{ gap: 12 }}>
                 {dashboard.categoryBreakdown.map((cat: { category: string; spentPaise: number; percentageOfTotal: number }, idx: number) => (
                   <View key={idx}>
-                    <View className="flex-row justify-between items-center mb-1">
-                      <Text className="text-xs font-bold text-slate-800 dark:text-slate-200 capitalize">
-                        {cat.category}
-                      </Text>
-                      <Text className="text-xs font-black text-slate-900 dark:text-slate-100">
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={styles.catName}>{cat.category}</Text>
+                      <Text style={styles.catValue}>
                         {formatPaise(cat.spentPaise)}{' '}
-                        <Text className="text-[10px] text-slate-400 font-medium">
-                          ({cat.percentageOfTotal}%)
-                        </Text>
+                        <Text style={styles.catPct}>({cat.percentageOfTotal}%)</Text>
                       </Text>
                     </View>
-                    <View className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <View
-                        className="h-full bg-purple-600 rounded-full"
-                        style={{ width: `${Math.min(cat.percentageOfTotal, 100)}%` }}
-                      />
+                    <View style={styles.progressTrack}>
+                      <View style={[styles.progressFill, { width: `${Math.min(cat.percentageOfTotal, 100)}%`, backgroundColor: PRIMARY }]} />
                     </View>
                   </View>
                 ))}
               </View>
-            </Card>
+            </View>
           )}
 
-          {/* Active Goals Milestones */}
+          {/* Goals */}
           {goals && goals.length > 0 && (
-            <Card className="p-4 mb-4">
-              <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                Savings Goals Audit
-              </Text>
-
-              <View className="gap-2.5">
+            <View style={styles.reportCard}>
+              <Text style={styles.reportCardTitle}>Savings Goals Audit</Text>
+              <View style={{ gap: 10 }}>
                 {goals.map((g) => {
                   const pct = g.targetAmount > 0 ? Math.round((g.currentAmount / g.targetAmount) * 100) : 0;
                   return (
-                    <View
-                      key={g.id || g._id}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800"
-                    >
-                      <View className="flex-row justify-between items-center mb-1">
-                        <Text className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                          {g.name}
-                        </Text>
-                        <Text className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                          {pct}%
-                        </Text>
+                    <View key={g.id || g._id} style={styles.goalItem}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={styles.goalName}>{g.name}</Text>
+                        <Text style={styles.goalPct}>{pct}%</Text>
                       </View>
-                      <Text className="text-[11px] text-slate-500 mb-1.5">
+                      <Text style={styles.goalAmount}>
                         {formatPaise(g.currentAmount)} of {formatPaise(g.targetAmount)}
                       </Text>
-                      <View className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <View
-                          className="h-full bg-purple-600 rounded-full"
-                          style={{ width: `${Math.min(pct, 100)}%` }}
-                        />
+                      <View style={[styles.progressTrack, { marginTop: 6 }]}>
+                        <View style={[styles.progressFill, { width: `${Math.min(pct, 100)}%`, backgroundColor: PRIMARY }]} />
                       </View>
                     </View>
                   );
                 })}
               </View>
-            </Card>
+            </View>
           )}
 
-          {/* Large Download Button */}
-          <View className="mb-6 mt-1">
+          {/* Download button */}
+          <View style={{ marginBottom: 32, marginTop: 4 }}>
             <Button
               title="Download Certified PDF Financial Statement"
               size="lg"
-              className="bg-slate-900 dark:bg-slate-100"
-              iconLeft={<FileDown size={18} color={Platform.OS === 'web' ? '#ffffff' : '#0c87eb'} />}
+              className="bg-blue-800"
+              iconLeft={<FileDown size={18} color={Platform.OS === 'web' ? '#ffffff' : '#E3ECFA'} />}
               onPress={handleDownloadPDF}
             />
           </View>
@@ -650,3 +567,239 @@ export default function AssistantScreen() {
     </ScreenWrapper>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────
+const styles = StyleSheet.create({
+  screenBg: {
+    backgroundColor: BG,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: PRIMARY,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
+  headerSub: { fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
+  pdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  pdfBtnText: { fontSize: 12, fontWeight: '700', color: PRIMARY },
+
+  // Greeting card
+  greetCard: {
+    backgroundColor: PRIMARY_LIGHT,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  greetText: { fontSize: 15, fontWeight: '800', color: TEXT_MAIN },
+  greetSub: { fontSize: 12, color: TEXT_MUTED, marginTop: 2 },
+
+  // Tabs
+  tabRow: {
+    flexDirection: 'row',
+    backgroundColor: '#E3ECFA',
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 12,
+    gap: 4,
+  },
+  tabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 11,
+  },
+  tabBtnActive: { backgroundColor: PRIMARY },
+  tabLabel: { fontSize: 11, fontWeight: '700', color: PRIMARY },
+  tabLabelActive: { color: '#ffffff' },
+
+  // Pills
+  pillsWrapper: { marginBottom: 10 },
+  pillsContainer: { gap: 8, paddingVertical: 4 },
+  pill: {
+    borderWidth: 1.5,
+    borderColor: PILL_BORDER,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: '#ffffff',
+  },
+  pillText: { fontSize: 11, fontWeight: '600', color: PRIMARY },
+
+  // Chat bubbles
+  msgRow: { flexDirection: 'row', gap: 10, maxWidth: '87%' },
+  msgRowBot: { alignSelf: 'flex-start' },
+  msgRowUser: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
+
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBot: { backgroundColor: PRIMARY_LIGHT },
+  avatarUser: { backgroundColor: PRIMARY },
+
+  bubble: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    maxWidth: '100%',
+  },
+  bubbleBot: {
+    backgroundColor: BOT_BUBBLE_BG,
+    borderLeftWidth: 3,
+    borderLeftColor: BOT_BUBBLE_BORDER,
+    borderRadius: 18,
+    borderTopLeftRadius: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  bubbleUser: {
+    backgroundColor: USER_BUBBLE,
+    borderTopRightRadius: 4,
+  },
+  bubbleText: { fontSize: 12, lineHeight: 18 },
+  bubbleTextBot: { color: TEXT_MAIN },
+  bubbleTextUser: { color: '#ffffff', fontWeight: '500' },
+  bubbleTime: { fontSize: 9, marginTop: 5 },
+  bubbleTimBot: { color: TEXT_MUTED },
+  bubbleTimeUser: { color: 'rgba(255,255,255,0.65)', textAlign: 'right' },
+
+  typingBubble: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  typingText: { fontSize: 12, color: TEXT_MUTED, fontWeight: '500' },
+
+  // Input bar
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderRadius: 18,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    gap: 8,
+    shadowColor: '#1565C0',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  input: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: TEXT_MAIN,
+  },
+  sendBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtnActive: { backgroundColor: PRIMARY },
+  sendBtnDisabled: { backgroundColor: '#E3ECFA' },
+
+  // Report tab
+  reportBanner: {
+    backgroundColor: PRIMARY,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reportBannerLabel: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 },
+  reportBannerScore: { fontSize: 20, fontWeight: '900', color: '#ffffff', marginTop: 2 },
+  reportBannerStatus: { fontSize: 11, color: '#86efac', fontWeight: '700', marginTop: 2 },
+  savePdfBtn: {
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  savePdfText: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
+
+  kpiRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#1565C0',
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  kpiLabel: { fontSize: 10, fontWeight: '700', color: TEXT_MUTED, textTransform: 'uppercase' },
+  kpiValue: { fontSize: 17, fontWeight: '900', color: TEXT_MAIN, marginTop: 4 },
+
+  reportCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#1565C0',
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  reportCardTitle: { fontSize: 11, fontWeight: '700', color: TEXT_MUTED, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 },
+  reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  reportRowLabel: { fontSize: 12, fontWeight: '700', color: '#374151' },
+  reportRowValue: { fontSize: 13, fontWeight: '900' },
+
+  retentionSection: { borderTopWidth: 1, borderTopColor: '#EEF2FF', paddingTop: 12 },
+  retentionLabel: { fontSize: 11, color: TEXT_MUTED },
+
+  progressTrack: { width: '100%', height: 6, backgroundColor: '#EEF2FF', borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+
+  catName: { fontSize: 12, fontWeight: '700', color: TEXT_MAIN, textTransform: 'capitalize' },
+  catValue: { fontSize: 12, fontWeight: '900', color: TEXT_MAIN },
+  catPct: { fontSize: 10, color: TEXT_MUTED, fontWeight: '500' },
+
+  goalItem: { backgroundColor: '#F8FAFF', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E3ECFA' },
+  goalName: { fontSize: 12, fontWeight: '700', color: TEXT_MAIN },
+  goalPct: { fontSize: 12, fontWeight: '700', color: PRIMARY },
+  goalAmount: { fontSize: 11, color: TEXT_MUTED },
+});

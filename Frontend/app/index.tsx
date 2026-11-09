@@ -103,7 +103,7 @@ export default function AnimatedSplashScreen() {
     <View
       style={{
         flex: 1,
-        backgroundColor: '#021024',
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 24,
@@ -116,18 +116,18 @@ export default function AnimatedSplashScreen() {
           width: 320,
           height: 320,
           borderRadius: 160,
-          backgroundColor: '#0284c7',
-          opacity: 0.12,
+          backgroundColor: '#E0F2FE',
+          opacity: 0.7,
         }}
       />
       <View
         style={{
           position: 'absolute',
-          width: 220,
-          height: 220,
-          borderRadius: 110,
-          backgroundColor: '#38bdf8',
-          opacity: 0.18,
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: '#BAE6FD',
+          opacity: 0.5,
         }}
       />
 
@@ -137,12 +137,12 @@ export default function AnimatedSplashScreen() {
           {
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: 28,
-            shadowColor: '#38bdf8',
+            marginBottom: 24,
+            shadowColor: '#1565C0',
             shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.45,
-            shadowRadius: 25,
-            elevation: 15,
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+            elevation: 10,
           },
           logoAnimatedStyle,
         ]}
@@ -150,9 +150,9 @@ export default function AnimatedSplashScreen() {
         <Image
           source={require('@/assets/images/logo.png')}
           style={{
-            width: 170,
-            height: 170,
-            borderRadius: 36,
+            width: 140,
+            height: 140,
+            borderRadius: 32,
           }}
           resizeMode="contain"
         />
@@ -160,26 +160,11 @@ export default function AnimatedSplashScreen() {
 
       {/* App Branding Title */}
       <Animated.View style={[{ alignItems: 'center' }, textAnimatedStyle]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <Sparkles size={16} color="#38bdf8" />
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: '900',
-              color: '#38bdf8',
-              letterSpacing: 3,
-              textTransform: 'uppercase',
-            }}
-          >
-            Smart Finance Engine
-          </Text>
-        </View>
-
         <Text
           style={{
-            fontSize: 30,
+            fontSize: 28,
             fontWeight: '900',
-            color: '#ffffff',
+            color: '#0F172A',
             letterSpacing: 0.5,
             textAlign: 'center',
           }}
@@ -189,14 +174,15 @@ export default function AnimatedSplashScreen() {
 
         <Text
           style={{
-            fontSize: 13,
-            fontWeight: '600',
-            color: '#94a3b8',
+            fontSize: 14,
+            fontWeight: '700',
+            color: '#1565C0',
             marginTop: 6,
+            letterSpacing: 1,
             textAlign: 'center',
           }}
         >
-          Effortless tracking · Verified insights · Zero stress
+          Track • Plan • Grow
         </Text>
       </Animated.View>
 
@@ -204,24 +190,42 @@ export default function AnimatedSplashScreen() {
       <View
         style={{
           position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 54 : 40,
-          width: 200,
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: 'rgba(255, 255, 255, 0.12)',
-          overflow: 'hidden',
+          bottom: Platform.OS === 'ios' ? 60 : 44,
+          alignItems: 'center',
+          width: 220,
         }}
       >
-        <Animated.View
-          style={[
-            {
-              height: '100%',
-              borderRadius: 2,
-              backgroundColor: '#38bdf8',
-            },
-            progressAnimatedStyle,
-          ]}
-        />
+        <View
+          style={{
+            width: '100%',
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: '#E2E8F0',
+            overflow: 'hidden',
+            marginBottom: 12,
+          }}
+        >
+          <Animated.View
+            style={[
+              {
+                height: '100%',
+                borderRadius: 2,
+                backgroundColor: '#1565C0',
+              },
+              progressAnimatedStyle,
+            ]}
+          />
+        </View>
+
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: '600',
+            color: '#64748B',
+          }}
+        >
+          Loading your finance...
+        </Text>
       </View>
     </View>
   );

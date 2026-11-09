@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenWrapper } from '@/src/components/ui';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppLockStore } from '@/src/store/appLockStore';
 import { useAuthStore } from '@/src/store/authStore';
-import { ShieldCheck, Delete, Fingerprint } from 'lucide-react-native';
+import { Lock, Delete, ArrowLeft, Fingerprint } from 'lucide-react-native';
 
 export default function AppLockScreen() {
   const router = useRouter();
-  const { unlockWithPin, unlockWithBiometrics, isBiometricEnabled, failedAttempts } =
-    useAppLockStore();
+  const { unlockWithPin, unlockWithBiometrics, isBiometricEnabled } = useAppLockStore();
   const { logout } = useAuthStore();
   const [pin, setPin] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Auto trigger biometrics when screen opens if enabled
   useEffect(() => {
     if (isBiometricEnabled) {
       void handleBiometricAuth();
@@ -58,102 +56,215 @@ export default function AppLockScreen() {
   };
 
   return (
-    <ScreenWrapper className="px-6 justify-between py-10 items-center">
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
       {/* Top Header */}
-      <View className="items-center mt-6">
-        <View className="w-16 h-16 rounded-3xl bg-primary-50 dark:bg-primary-950/60 items-center justify-center mb-3 border border-primary-100 dark:border-primary-900">
-          <ShieldCheck size={32} color="#0c87eb" />
-        </View>
-        <Text className="text-xl font-black text-slate-900 dark:text-slate-100">
-          App Locked
-        </Text>
-        <Text className="text-xs text-slate-500 mt-1 text-center">
-          Enter your 4-digit security PIN to access your financial data.
-        </Text>
+      <View style={styles.topHeader}>
+        <Pressable onPress={handleSignOut} style={styles.backBtn}>
+          <ArrowLeft size={22} color="#1565C0" />
+        </Pressable>
+      </View>
 
-        {/* PIN Dots Indicator */}
-        <View className="flex-row items-center gap-4 mt-8 mb-2">
+      {/* Center Icon & Title */}
+      <View style={styles.centerContent}>
+        <View style={styles.iconCircle}>
+          <Lock size={36} color="#1565C0" strokeWidth={2.5} />
+        </View>
+
+        <Text style={styles.title}>Enter PIN</Text>
+        <Text style={styles.subtitle}>Enter your 4-digit PIN{'\n'}to unlock the app</Text>
+
+        {/* PIN Dots */}
+        <View style={styles.dotsRow}>
           {[0, 1, 2, 3].map((idx) => {
             const isFilled = pin.length > idx;
             return (
               <View
                 key={idx}
-                className={`w-4 h-4 rounded-full transition-all ${
-                  isFilled
-                    ? 'bg-primary-600 scale-110'
-                    : 'bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700'
-                }`}
+                style={[styles.pinDot, isFilled && styles.pinDotFilled]}
               />
             );
           })}
         </View>
 
-        {errorMsg && (
-          <Text className="text-xs font-semibold text-rose-500 mt-2">
-            {errorMsg}
-          </Text>
+        {errorMsg ? (
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        ) : (
+          <View style={{ height: 18 }} />
         )}
       </View>
 
-      {/* Number Pad */}
-      <View className="w-full max-w-[320px] mb-4">
-        <View className="flex-row justify-between mb-4">
-          {['1', '2', '3'].map((n) => (
-            <KeyButton key={n} label={n} onPress={() => handleKeyPress(n)} />
-          ))}
-        </View>
-        <View className="flex-row justify-between mb-4">
-          {['4', '5', '6'].map((n) => (
-            <KeyButton key={n} label={n} onPress={() => handleKeyPress(n)} />
-          ))}
-        </View>
-        <View className="flex-row justify-between mb-4">
-          {['7', '8', '9'].map((n) => (
-            <KeyButton key={n} label={n} onPress={() => handleKeyPress(n)} />
-          ))}
-        </View>
-        <View className="flex-row justify-between items-center">
+      {/* Numeric Keypad */}
+      <View style={styles.keypadContainer}>
+        {[
+          ['1', '2', '3'],
+          ['4', '5', '6'],
+          ['7', '8', '9'],
+        ].map((row, rIdx) => (
+          <View key={rIdx} style={styles.keypadRow}>
+            {row.map((num) => (
+              <Pressable
+                key={num}
+                onPress={() => void handleKeyPress(num)}
+                style={({ pressed }) => [styles.keyBtn, pressed && styles.keyBtnPressed]}
+              >
+                <Text style={styles.keyText}>{num}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ))}
+
+        {/* Bottom row: Biometric / Empty, 0, Backspace */}
+        <View style={styles.keypadRow}>
           {isBiometricEnabled ? (
             <Pressable
-              onPress={handleBiometricAuth}
-              className="w-20 h-20 rounded-full items-center justify-center active:bg-slate-100 dark:active:bg-slate-800"
+              onPress={() => void handleBiometricAuth()}
+              style={({ pressed }) => [styles.keyBtn, pressed && styles.keyBtnPressed]}
             >
-              <Fingerprint size={28} color="#0c87eb" />
+              <Fingerprint size={28} color="#1565C0" />
             </Pressable>
           ) : (
-            <View className="w-20 h-20" />
+            <View style={styles.keyBtnEmpty} />
           )}
 
-          <KeyButton label="0" onPress={() => handleKeyPress('0')} />
+          <Pressable
+            onPress={() => void handleKeyPress('0')}
+            style={({ pressed }) => [styles.keyBtn, pressed && styles.keyBtnPressed]}
+          >
+            <Text style={styles.keyText}>0</Text>
+          </Pressable>
 
           <Pressable
             onPress={handleDelete}
-            className="w-20 h-20 rounded-full items-center justify-center active:bg-slate-100 dark:active:bg-slate-800"
+            style={({ pressed }) => [styles.keyBtn, pressed && styles.keyBtnPressed]}
           >
-            <Delete size={24} color="#64748b" />
+            <Delete size={26} color="#64748B" />
           </Pressable>
         </View>
       </View>
 
-      {/* Sign Out Fallback */}
-      <Pressable onPress={handleSignOut} className="py-2">
-        <Text className="text-xs font-semibold text-slate-400 active:text-slate-600">
-          Forgot PIN? Sign Out
-        </Text>
-      </Pressable>
-    </ScreenWrapper>
+      {/* Decorative soft blue wave gradient at bottom */}
+      <LinearGradient
+        colors={['transparent', '#E3F2FD']}
+        style={styles.bottomGlow}
+        pointerEvents="none"
+      />
+    </View>
   );
 }
 
-function KeyButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="w-20 h-20 rounded-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 items-center justify-center shadow-sm active:bg-slate-100 dark:active:bg-slate-800 active:scale-95"
-    >
-      <Text className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 50,
+    paddingBottom: 36,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F0F4FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerContent: {
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8F1FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 28,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 12,
+  },
+  pinDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#E2E8F0',
+  },
+  pinDotFilled: {
+    backgroundColor: '#1565C0',
+    transform: [{ scale: 1.15 }],
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EF4444',
+    textAlign: 'center',
+  },
+  keypadContainer: {
+    width: '100%',
+    maxWidth: 320,
+    alignSelf: 'center',
+    gap: 16,
+    zIndex: 2,
+  },
+  keypadRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  keyBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keyBtnPressed: {
+    backgroundColor: '#E2E8F0',
+  },
+  keyBtnEmpty: {
+    width: 72,
+    height: 72,
+  },
+  keyText: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  bottomGlow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    zIndex: 1,
+  },
+});

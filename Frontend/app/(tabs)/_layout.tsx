@@ -1,13 +1,16 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Platform } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import {
   LayoutDashboard,
-  ArrowLeftRight,
+  BarChart2,
   PieChart,
   Target,
-  Sparkles,
+  Bot,
 } from 'lucide-react-native';
+
+const ACTIVE_COLOR = '#1565C0';
+const INACTIVE_COLOR = '#9E9E9E';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -18,23 +21,30 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#026ac8',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveTintColor: ACTIVE_COLOR,
+        tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e2e8f0',
-          height: 62 + bottomInset,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          height: 64 + bottomInset,
           paddingBottom: bottomInset + 4,
           paddingTop: 8,
-          elevation: 12,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.08,
-          shadowRadius: 10,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          position: 'absolute',
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '700',
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          paddingTop: 4,
         },
       }}
     >
@@ -42,8 +52,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <LayoutDashboard color={color} size={size ?? 22} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <LayoutDashboard
+                color={color}
+                size={22}
+                strokeWidth={focused ? 2.2 : 1.8}
+              />
+            </View>
           ),
         }}
       />
@@ -51,8 +67,14 @@ export default function TabLayout() {
         name="transactions"
         options={{
           title: 'Transactions',
-          tabBarIcon: ({ color, size }) => (
-            <ArrowLeftRight color={color} size={size ?? 22} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <BarChart2
+                color={color}
+                size={22}
+                strokeWidth={focused ? 2.2 : 1.8}
+              />
+            </View>
           ),
         }}
       />
@@ -60,8 +82,14 @@ export default function TabLayout() {
         name="budgets"
         options={{
           title: 'Budgets',
-          tabBarIcon: ({ color, size }) => (
-            <PieChart color={color} size={size ?? 22} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <PieChart
+                color={color}
+                size={22}
+                strokeWidth={focused ? 2.2 : 1.8}
+              />
+            </View>
           ),
         }}
       />
@@ -69,8 +97,14 @@ export default function TabLayout() {
         name="goals"
         options={{
           title: 'Goals',
-          tabBarIcon: ({ color, size }) => (
-            <Target color={color} size={size ?? 22} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Target
+                color={color}
+                size={22}
+                strokeWidth={focused ? 2.2 : 1.8}
+              />
+            </View>
           ),
         }}
       />
@@ -78,11 +112,25 @@ export default function TabLayout() {
         name="assistant"
         options={{
           title: 'Assistant',
-          tabBarIcon: ({ color, size }) => (
-            <Sparkles color={color} size={size ?? 22} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Bot
+                color={color}
+                size={22}
+                strokeWidth={focused ? 2.2 : 1.8}
+              />
+            </View>
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  activeIconWrapper: {
+    backgroundColor: '#E3F0FF',
+    borderRadius: 10,
+    padding: 4,
+  },
+});

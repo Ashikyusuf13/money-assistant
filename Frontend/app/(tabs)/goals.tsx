@@ -202,41 +202,41 @@ export default function GoalsScreen() {
       {/* Header */}
       <View className="flex-row items-center justify-between mb-5">
         <View>
-          <Text className="text-xs font-bold text-purple-700 uppercase tracking-widest">
+          <Text className="text-xs font-bold text-primary-700 uppercase tracking-widest">
             Savings Milestones
           </Text>
           <Text className="text-2xl font-black text-slate-900" style={{ color: '#0f172a' }}>
-            Goals
+            Savings Goals
           </Text>
         </View>
         <Pressable
           onPress={() => { resetCreateForm(); setShowAddModal(true); }}
-          className="flex-row items-center gap-1.5 bg-purple-700 px-4 py-2.5 rounded-2xl active:bg-purple-800 shadow-md"
-          style={{ shadowColor: '#6b21a8', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
+          className="flex-row items-center gap-1.5 bg-primary-600 px-4 py-2.5 rounded-2xl active:bg-primary-700 shadow-md"
+          style={{ shadowColor: '#1565C0', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
         >
           <Plus size={15} color="#ffffff" />
           <Text className="text-xs font-bold text-white">New Goal</Text>
         </Pressable>
       </View>
 
-      {/* Consolidated Summary Card */}
-      <Card className="mb-5 p-0 overflow-hidden border-0" style={{ backgroundColor: '#2e1065' }}>
+      {/* Consolidated Summary Card - Royal Blue Theme */}
+      <Card className="mb-5 p-0 overflow-hidden border-0" style={{ backgroundColor: '#0c5ec7', borderRadius: 24 }}>
         <View className="px-5 pt-5 pb-4">
           <View className="flex-row justify-between items-start mb-4">
             <View>
-              <Text className="text-xs font-bold text-purple-300 uppercase tracking-widest mb-1">
+              <Text className="text-xs font-bold text-sky-200 uppercase tracking-widest mb-1">
                 Total Savings Progress
               </Text>
               <Text className="text-3xl font-black text-white">
                 {formatPaise(totalSaved)}
               </Text>
-              <Text className="text-sm font-semibold text-purple-200 mt-0.5">
+              <Text className="text-sm font-semibold text-sky-100 mt-0.5">
                 of {formatPaise(totalTarget)} target
               </Text>
             </View>
             <View
-              className="w-16 h-16 rounded-full border-4 border-purple-400/40 items-center justify-center"
-              style={{ backgroundColor: '#3b0764' }}
+              className="w-16 h-16 rounded-full border-4 border-sky-300/40 items-center justify-center"
+              style={{ backgroundColor: '#024294' }}
             >
               {totalProgress >= 100 ? (
                 <CheckCircle2 size={26} color="#4ade80" />
@@ -247,24 +247,24 @@ export default function GoalsScreen() {
           </View>
 
           {/* Overall progress bar */}
-          <View className="w-full h-2.5 rounded-full overflow-hidden mb-3" style={{ backgroundColor: '#4c1d95' }}>
+          <View className="w-full h-2.5 rounded-full overflow-hidden mb-3" style={{ backgroundColor: '#023373' }}>
             <View
               className="h-full rounded-full"
-              style={{ width: `${totalProgress}%`, backgroundColor: '#a78bfa' }}
+              style={{ width: `${totalProgress}%`, backgroundColor: '#38bdf8' }}
             />
           </View>
 
           <View className="flex-row gap-2">
-            <View className="flex-1 bg-purple-950/80 rounded-xl px-3 py-2 border border-purple-800/40">
-              <Text className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Active</Text>
+            <View className="flex-1 bg-sky-950/60 rounded-xl px-3 py-2 border border-sky-800/40">
+              <Text className="text-[10px] text-sky-300 font-bold uppercase tracking-wider">Active</Text>
               <Text className="text-base font-black text-white">{activeCount}</Text>
             </View>
-            <View className="flex-1 bg-purple-950/80 rounded-xl px-3 py-2 border border-purple-800/40">
-              <Text className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Achieved</Text>
+            <View className="flex-1 bg-sky-950/60 rounded-xl px-3 py-2 border border-sky-800/40">
+              <Text className="text-[10px] text-sky-300 font-bold uppercase tracking-wider">Achieved</Text>
               <Text className="text-base font-black text-emerald-400">{completedCount}</Text>
             </View>
-            <View className="flex-1 bg-purple-950/80 rounded-xl px-3 py-2 border border-purple-800/40">
-              <Text className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Remaining</Text>
+            <View className="flex-1 bg-sky-950/60 rounded-xl px-3 py-2 border border-sky-800/40">
+              <Text className="text-[10px] text-sky-300 font-bold uppercase tracking-wider">Remaining</Text>
               <Text className="text-sm font-black text-white" numberOfLines={1}>
                 {formatPaise(Math.max(0, totalTarget - totalSaved))}
               </Text>
