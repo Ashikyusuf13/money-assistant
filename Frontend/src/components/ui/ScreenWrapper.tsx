@@ -16,6 +16,7 @@ interface ScreenWrapperProps {
   scrollable?: boolean;
   className?: string;
   style?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
   contentContainerClassName?: string;
   refreshControl?: ReactElement<RefreshControlProps>;
   edges?: ('top' | 'right' | 'bottom' | 'left')[];
@@ -26,22 +27,25 @@ export function ScreenWrapper({
   scrollable = false,
   className = '',
   style,
+  contentContainerStyle,
   contentContainerClassName = '',
   refreshControl,
   edges = ['top'],
 }: ScreenWrapperProps) {
   return (
-    <SafeAreaView edges={edges} className="flex-1 bg-slate-50 dark:bg-slate-950" style={style}>
+    <SafeAreaView edges={edges} style={[{ flex: 1, backgroundColor: '#F8FAFC' }, style]}>
       <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
+        style={{ flex: 1, width: '100%' }}
       >
         {scrollable ? (
           <ScrollView
-            className={`flex-1 ${className}`}
-            style={style}
-            contentContainerClassName={`pb-8 ${contentContainerClassName}`}
+            style={{ flex: 1, width: '100%' }}
+            contentContainerStyle={[
+              { flexGrow: 1, width: '100%' },
+              contentContainerStyle,
+            ]}
             refreshControl={refreshControl}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -49,7 +53,7 @@ export function ScreenWrapper({
             {children}
           </ScrollView>
         ) : (
-          <View className={`flex-1 ${className}`} style={style}>{children}</View>
+          <View style={[{ flex: 1, width: '100%' }, contentContainerStyle]}>{children}</View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>

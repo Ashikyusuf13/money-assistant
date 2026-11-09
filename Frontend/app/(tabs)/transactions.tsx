@@ -47,6 +47,7 @@ interface Transaction {
   date: string;
   type: TransactionType;
   amount: number;
+  createdAt?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -109,10 +110,24 @@ function renderCategoryIcon(category: string, color: string, size = 20) {
   }
 }
 
-/** Group transactions by their date string (YYYY-MM-DD) */
+/** Group transactions by their date string (YYYY-MM-DD), with latest first */
 function groupByDate(txList: Transaction[]): Array<{ dateLabel: string; items: Transaction[] }> {
+  const sorted = [...txList].sort((a, b) => {
+    const timeA = new Date(a.date).getTime();
+    const timeB = new Date(b.date).getTime();
+    if (timeB !== timeA) return timeB - timeA;
+    if (a.createdAt && b.createdAt) {
+      const createdA = new Date(a.createdAt).getTime();
+      const createdB = new Date(b.createdAt).getTime();
+      if (createdB !== createdA) return createdB - createdA;
+    }
+    const idA = a._id || a.id || '';
+    const idB = b._id || b.id || '';
+    return idB.localeCompare(idA);
+  });
+
   const map = new Map<string, Transaction[]>();
-  for (const tx of txList) {
+  for (const tx of sorted) {
     const key = formatDate(tx.date);
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(tx);
@@ -139,7 +154,8 @@ export default function TransactionsScreen() {
   return (
     <ScreenWrapper
       scrollable
-      style={styles.wrapper}
+      style={{ backgroundColor: '#F8FAFC', flex: 1 }}
+      contentContainerStyle={styles.scrollContent}
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
@@ -157,10 +173,12 @@ export default function TransactionsScreen() {
         </View>
         <Pressable
           onPress={() => router.push('/transaction/add')}
-          style={({ pressed }) => [styles.addBtn, pressed && styles.addBtnPressed]}
+          style={styles.addBtn}
         >
-          <Plus size={16} color="#ffffff" strokeWidth={2.5} />
-          <Text style={styles.addBtnLabel}>Add</Text>
+          <View style={styles.addBtnInner}>
+            <Plus size={16} color="#ffffff" strokeWidth={2.8} />
+            <Text style={styles.addBtnLabel}>Add</Text>
+          </View>
         </Pressable>
       </View>
 
@@ -214,45 +232,46 @@ export default function TransactionsScreen() {
                     <Pressable
                       key={tx._id ?? tx.id}
                       onPress={() => router.push(`/transaction/${tx._id ?? tx.id}`)}
-                      style={({ pressed }) => [
+                      style={styles.txPressable}
+                    >
+                      <View style={[
                         styles.txRow,
                         idx < items.length - 1 && styles.txRowBorder,
-                        pressed && styles.txRowPressed,
-                      ]}
-                    >
-                      {/* Category Icon */}
-                      <View style={[styles.iconBubble, { backgroundColor: catColor + '15', borderColor: catColor + '35' }]}>
-                        {renderCategoryIcon(tx.category, catColor, 20)}
-                        <View style={[styles.typeBadgeIndicator, { backgroundColor: isPositive ? '#16A34A' : '#EF4444' }]}>
-                          {isPositive ? (
-                            <ArrowDownLeft size={8} color="#FFFFFF" strokeWidth={3} />
-                          ) : (
-                            <ArrowUpRight size={8} color="#FFFFFF" strokeWidth={3} />
-                          )}
-                        </View>
-                      </View>
-
-                      {/* Text details */}
-                      <View style={styles.txInfo}>
-                        <Text style={styles.txDesc} numberOfLines={1}>
-                          {tx.description}
-                        </Text>
-                        <View style={styles.txMeta}>
-                          <View style={[styles.categoryBadge, { backgroundColor: catColor + '15' }]}>
-                            <Text style={[styles.categoryBadgeText, { color: catColor }]}>
-                              {tx.category}
-                            </Text>
-                          </View>
-                          <View style={styles.walletBadge}>
-                            <Text style={styles.walletBadgeText}>Main Wallet</Text>
+                      ]}>
+                        {/* Category Icon */}
+                        <View style={[styles.iconBubble, { backgroundColor: catColor + '15', borderColor: catColor + '35' }]}>
+                          {renderCategoryIcon(tx.category, catColor, 20)}
+                          <View style={[styles.typeBadgeIndicator, { backgroundColor: isPositive ? '#16A34A' : '#EF4444' }]}>
+                            {isPositive ? (
+                              <ArrowDownLeft size={8} color="#FFFFFF" strokeWidth={3} />
+                            ) : (
+                              <ArrowUpRight size={8} color="#FFFFFF" strokeWidth={3} />
+                            )}
                           </View>
                         </View>
-                      </View>
 
-                      {/* Amount & Direction */}
-                      <View style={styles.txRight}>
-                        <Text style={[styles.txAmount, { color: amountColor }]}>{text}</Text>
-                        <ChevronRight size={14} color="#94A3B8" />
+                        {/* Text details */}
+                        <View style={styles.txInfo}>
+                          <Text style={styles.txDesc} numberOfLines={1}>
+                            {tx.description}
+                          </Text>
+                          <View style={styles.txMeta}>
+                            <View style={[styles.categoryBadge, { backgroundColor: catColor + '15' }]}>
+                              <Text style={[styles.categoryBadgeText, { color: catColor }]}>
+                                {tx.category}
+                              </Text>
+                            </View>
+                            <View style={styles.walletBadge}>
+                              <Text style={styles.walletBadgeText}>Main Wallet</Text>
+                            </View>
+                          </View>
+                        </View>
+
+                        {/* Amount & Direction */}
+                        <View style={styles.txRight}>
+                          <Text style={[styles.txAmount, { color: amountColor }]}>{text}</Text>
+                          <ChevronRight size={14} color="#94A3B8" />
+                        </View>
                       </View>
                     </Pressable>
                   );
@@ -280,11 +299,11 @@ export default function TransactionsScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+  scrollContent: {
     width: '100%',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 110,
   },
   skeletonContainer: {
     backgroundColor: '#FFFFFF',
@@ -319,22 +338,23 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     backgroundColor: '#1565C0',
-    paddingHorizontal: 15,
-    paddingVertical: 9,
     borderRadius: 14,
+    overflow: 'hidden',
     shadowColor: '#1565C0',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.28,
     shadowRadius: 8,
     elevation: 5,
   },
-  addBtnPressed: {
-    backgroundColor: '#0D47A1',
-    transform: [{ scale: 0.98 }],
+  addBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1565C0',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 14,
   },
   addBtnLabel: {
     fontSize: 13,
@@ -416,19 +436,20 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     width: '100%',
   },
+  txPressable: {
+    width: '100%',
+  },
   txRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    gap: 12,
+    width: '100%',
   },
   txRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-  },
-  txRowPressed: {
-    backgroundColor: '#F8FAFC',
   },
   iconBubble: {
     width: 44,
@@ -438,6 +459,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     position: 'relative',
+    flexShrink: 0,
   },
   typeBadgeIndicator: {
     position: 'absolute',
@@ -453,12 +475,16 @@ const styles = StyleSheet.create({
   },
   txInfo: {
     flex: 1,
-    gap: 4,
+    minWidth: 0,
+    marginLeft: 12,
+    marginRight: 8,
+    justifyContent: 'center',
   },
   txDesc: {
     fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
+    marginBottom: 4,
   },
   txMeta: {
     flexDirection: 'row',
@@ -489,7 +515,8 @@ const styles = StyleSheet.create({
   txRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexShrink: 0,
   },
   txAmount: {
     fontSize: 15,

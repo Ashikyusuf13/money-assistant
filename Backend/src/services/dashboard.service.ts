@@ -13,6 +13,7 @@ import {
   calculatePeriodCashFlow,
   LedgerTransactionEntry,
 } from './ledger.rules';
+import { calculatePace } from './goal.service';
 
 export interface CategorySpendSummary {
   category: string;
@@ -65,8 +66,12 @@ export interface DashboardResponse {
     currentBalance?: number;
   };
   budgets: {
+    totalIncome?: number;
+    savingsTarget?: number;
+    availableExpenseBudget?: number;
     totalBudget: number;
     totalSpent: number;
+    remainingBudget?: number;
     overallUtilizationPercentage: number;
   };
   goals: {
@@ -303,19 +308,45 @@ export async function getDashboardSummary(
     targetDate: g.targetDate,
   }));
 
-  // 8. Recent Transactions for the Selected Month (Latest 4)
+  // 8. Recent Transactions for the Selected Month (Latest 4) - Newest Created First
   const recentTransactions = await Transaction.find({
     userId: userObjectId,
     isArchived: false,
     date: { $gte: currentBounds.start, $lte: currentBounds.end },
   })
-    .sort({ date: -1 })
+    .sort({ createdAt: -1, date: -1, _id: -1 })
     .limit(4);
 
-  const totalBudgetPaise = budgetHighlights.reduce((sum, b) => sum + b.budgetAmount, 0);
-  const totalSpentPaise = budgetHighlights.reduce((sum, b) => sum + b.spentPaise, 0);
+  // 9. Financial Calculations (Consistent Monthly Budget Engine)
+  // Total Income = All income transactions for the selected month (or starting profile salary)
+  // Savings Target = Sum of active monthly goal savings pace
+  const savingsTargetPaise = activeGoals.reduce((sum, g) => {
+    const pace = calculatePace(g.targetAmount, g.currentAmount, g.targetDate);
+    return sum + (pace.requiredMonthlyContributionPaise > 0 ? pace.requiredMonthlyContributionPaise : 0);
+  }, 0);
+
+  // Available Expense Budget = Total Income - Savings Target
+  const rawAvailableExpenseBudget = Math.max(0, totalMonthIncome - savingsTargetPaise);
+
+  // Total Category Budget limits allocated by user
+  const totalCategoryBudgetPaise = budgetHighlights.reduce((sum, b) => sum + b.budgetAmount, 0);
+
+  // Total Expenses = All valid expense transactions for the selected month
+  const totalExpensePaise = cashFlow.netOperatingExpense;
+
+  // Effective Budget Limit: Use allocated category budgets if user created them, otherwise Available Expense Budget
+  const effectiveBudgetLimit = totalCategoryBudgetPaise > 0
+    ? totalCategoryBudgetPaise
+    : rawAvailableExpenseBudget;
+
+  // Remaining Budget = Available Expense Budget - Total Expenses (Distinct from remaining wallet balance)
+  const remainingBudgetPaise = Math.max(0, effectiveBudgetLimit - totalExpensePaise);
+
+  // Budget Utilization = (Total Expenses / Available Expense Budget) * 100
   const overallUtilizationPercentage =
-    totalBudgetPaise > 0 ? Math.round((totalSpentPaise / totalBudgetPaise) * 100) : 0;
+    effectiveBudgetLimit > 0
+      ? Math.round((totalExpensePaise / effectiveBudgetLimit) * 100)
+      : 0;
 
   const insights: DashboardResponse['insights'] = [];
   if (cashFlow.netCashFlow > 0) {
@@ -374,8 +405,12 @@ export async function getDashboardSummary(
       currentBalance: remainingSalaryAfterExpenses,
     },
     budgets: {
-      totalBudget: totalBudgetPaise,
-      totalSpent: totalSpentPaise,
+      totalIncome: totalMonthIncome,
+      savingsTarget: savingsTargetPaise,
+      availableExpenseBudget: effectiveBudgetLimit,
+      totalBudget: effectiveBudgetLimit,
+      totalSpent: totalExpensePaise,
+      remainingBudget: remainingBudgetPaise,
       overallUtilizationPercentage,
     },
     goals: {

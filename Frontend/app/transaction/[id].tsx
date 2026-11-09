@@ -156,19 +156,6 @@ export default function TransactionDetailScreen() {
 
         <View style={styles.divider} />
 
-        {/* Created / Logged At */}
-        <View style={styles.detailRow}>
-          <View style={styles.detailLabelRow}>
-            <Clock size={16} color="#7B93C8" />
-            <Text style={styles.detailLabel}>Created At</Text>
-          </View>
-          <Text style={styles.detailValue}>
-            {tx.createdAt ? formatDateTime(tx.createdAt) : tx.date ? formatDateTime(tx.date) : 'N/A'}
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
         {/* Wallet / Account */}
         <View style={styles.detailRow}>
           <View style={styles.detailLabelRow}>

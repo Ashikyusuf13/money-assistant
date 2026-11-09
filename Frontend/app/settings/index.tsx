@@ -14,23 +14,19 @@ import { useSalary, useSetupSalary } from '@/src/hooks/useSalary';
 import { formatPaise } from '@/src/utils/currency';
 import {
   ArrowLeft,
-  User as UserIcon,
-  Bell,
   Shield,
-  KeyRound,
   Fingerprint,
   LogOut,
   ChevronRight,
-  Lock,
-  Coins,
   X,
   Wallet,
   Pencil,
   CheckCircle2,
-  Settings,
-  HelpCircle,
   Info,
   Crown,
+  Sparkles,
+  Code2,
+  Check,
 } from 'lucide-react-native';
 
 export default function SettingsScreen() {
@@ -49,6 +45,7 @@ export default function SettingsScreen() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
 
@@ -171,41 +168,6 @@ export default function SettingsScreen() {
 
       {/* ─── Main Menu Section ───────────────────────────── */}
       <View style={styles.menuContainer}>
-        {/* My Profile */}
-        <Pressable
-          onPress={() => {
-            setSalaryAmountPaise(currentSalary);
-            setShowSalaryModal(true);
-          }}
-          style={styles.menuItem}
-        >
-          <View style={styles.menuLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#EBF3FF' }]}>
-              <UserIcon size={18} color="#1565C0" />
-            </View>
-            <Text style={styles.menuTitle}>My Profile</Text>
-          </View>
-          <ChevronRight size={18} color="#94A3B8" />
-        </Pressable>
-
-        <View style={styles.menuDivider} />
-
-        {/* Notifications */}
-        <Pressable
-          onPress={() => alert('Notifications are currently enabled.')}
-          style={styles.menuItem}
-        >
-          <View style={styles.menuLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FDF2F8' }]}>
-              <Bell size={18} color="#DB2777" />
-            </View>
-            <Text style={styles.menuTitle}>Notifications</Text>
-          </View>
-          <ChevronRight size={18} color="#94A3B8" />
-        </Pressable>
-
-        <View style={styles.menuDivider} />
-
         {/* Security & Privacy */}
         <Pressable
           onPress={() => {
@@ -250,56 +212,25 @@ export default function SettingsScreen() {
 
         <View style={styles.menuDivider} />
 
-        {/* App Preferences */}
-        <View style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#F3E8FF' }]}>
-              <Settings size={18} color="#9333EA" />
-            </View>
-            <View>
-              <Text style={styles.menuTitle}>App Preferences</Text>
-              <Text style={styles.menuSub} numberOfLines={1}>
-                Currency (INR ₹), notifications & cache
-              </Text>
-            </View>
-          </View>
-          <ChevronRight size={18} color="#94A3B8" />
-        </View>
-
-        <View style={styles.menuDivider} />
-
-        {/* Help & Support */}
-        <Pressable
-          onPress={() => router.push('/(tabs)/assistant')}
-          style={styles.menuItem}
-        >
-          <View style={styles.menuLeft}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <HelpCircle size={18} color="#D97706" />
-            </View>
-            <Text style={styles.menuTitle}>Help &amp; Support</Text>
-          </View>
-          <ChevronRight size={18} color="#94A3B8" />
-        </Pressable>
-
-        <View style={styles.menuDivider} />
-
         {/* About App */}
         <Pressable
-          onPress={() => alert('Money Assistant v1.0.0\nYour Smart Finance Companion')}
+          onPress={() => setShowAboutModal(true)}
           style={styles.menuItem}
         >
           <View style={styles.menuLeft}>
             <View style={[styles.menuIconCircle, { backgroundColor: '#F1F5F9' }]}>
               <Info size={18} color="#475569" />
             </View>
-            <Text style={styles.menuTitle}>About App</Text>
+            <View>
+              <Text style={styles.menuTitle}>About App</Text>
+              <Text style={styles.menuSub}>Created by Ashik Yusuf</Text>
+            </View>
           </View>
           <ChevronRight size={18} color="#94A3B8" />
         </Pressable>
       </View>
 
-      {/* ─── Log Out Button (Screen 11 Reference) ────────── */}
+      {/* ─── Log Out Button ──────────────────────────────── */}
       <Pressable
         onPress={() => setShowLogoutModal(true)}
         style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
@@ -309,6 +240,83 @@ export default function SettingsScreen() {
       </Pressable>
 
       <View style={{ height: 40 }} />
+
+      {/* ─── About App Modal (Centered) ────────────────── */}
+      <Modal
+        visible={showAboutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAboutModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          {/* Backdrop Tap to Close */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowAboutModal(false)}
+          />
+
+          <View style={styles.aboutModalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={16} color="#1565C0" />
+                <Text style={styles.aboutEyebrow}>ABOUT APPLICATION</Text>
+              </View>
+              <Pressable
+                onPress={() => setShowAboutModal(false)}
+                style={styles.closeBtn}
+                accessibilityLabel="Close About Modal"
+              >
+                <X size={18} color="#334155" />
+              </Pressable>
+            </View>
+
+            <View style={styles.aboutAppCenter}>
+              <View style={styles.aboutAppIcon}>
+                <Wallet size={36} color="#FFFFFF" strokeWidth={2.4} />
+              </View>
+              <Text style={styles.aboutAppName}>Financial Ledger</Text>
+              <View style={styles.aboutVersionBadge}>
+                <Text style={styles.aboutVersionText}>Version 1.0.0 (Production)</Text>
+              </View>
+            </View>
+
+            {/* Creator Spotlight Box */}
+            <View style={styles.creatorCard}>
+              <View style={styles.creatorBadgeRow}>
+                <Code2 size={16} color="#1565C0" />
+                <Text style={styles.creatorBadgeLabel}>LEAD DEVELOPER &amp; DESIGNER</Text>
+              </View>
+              <Text style={styles.creatorName}>Created by Ashik Yusuf</Text>
+              <Text style={styles.creatorBio}>
+                Engineered for seamless personal financial tracking, salary allocation, expense analysis, and PDF statement generation.
+              </Text>
+            </View>
+
+            {/* Specs list */}
+            <View style={styles.specsList}>
+              <View style={styles.specRow}>
+                <Check size={14} color="#16A34A" strokeWidth={2.5} />
+                <Text style={styles.specText}>End-to-end encrypted session and PIN lock</Text>
+              </View>
+              <View style={styles.specRow}>
+                <Check size={14} color="#16A34A" strokeWidth={2.5} />
+                <Text style={styles.specText}>Real-time monthly budgeting &amp; cash flow calculation</Text>
+              </View>
+              <View style={styles.specRow}>
+                <Check size={14} color="#16A34A" strokeWidth={2.5} />
+                <Text style={styles.specText}>Clean single-wallet architecture</Text>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={() => setShowAboutModal(false)}
+              style={styles.aboutCloseBtn}
+            >
+              <Text style={styles.aboutCloseBtnText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* ─── Edit Salary Modal (Centered) ──────────────── */}
       <Modal
@@ -734,5 +742,128 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginTop: 4,
+  },
+  // ─── About Modal Styles ──────────────────────────────────
+  aboutModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  aboutEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1565C0',
+    letterSpacing: 1.1,
+  },
+  aboutAppCenter: {
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  aboutAppIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: '#1565C0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: 12,
+  },
+  aboutAppName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  aboutVersionBadge: {
+    backgroundColor: '#EBF3FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 6,
+  },
+  aboutVersionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1565C0',
+  },
+  creatorCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  creatorBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  creatorBadgeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1565C0',
+    letterSpacing: 0.8,
+  },
+  creatorName: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  creatorBio: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+    lineHeight: 18,
+  },
+  specsList: {
+    gap: 8,
+    marginBottom: 18,
+    paddingHorizontal: 4,
+  },
+  specRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  specText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+    flex: 1,
+  },
+  aboutCloseBtn: {
+    backgroundColor: '#1565C0',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  aboutCloseBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

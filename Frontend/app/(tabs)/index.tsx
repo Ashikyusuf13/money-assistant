@@ -5,6 +5,7 @@ import {
   Pressable,
   RefreshControl,
   BackHandler,
+  Modal,
   StyleSheet,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -30,6 +31,7 @@ import {
   ArrowRight,
   User,
   Calendar,
+  CalendarDays,
   Sparkles,
   ChevronLeft,
   ChevronRight,
@@ -50,7 +52,22 @@ import {
   ArrowLeftRight,
   RotateCcw,
   Package,
+  X,
 } from 'lucide-react-native';
+
+const MONTH_NAMES = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+function getMonthDateRange(monthStr: string): string {
+  const [y, m] = monthStr.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const startDay = '01';
+  const endDay = String(lastDay).padStart(2, '0');
+  const monthName = MONTH_NAMES[m - 1] || 'Month';
+  return `${startDay} ${monthName} ${y} – ${endDay} ${monthName} ${y}`;
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   food: '#D97706',
@@ -107,6 +124,8 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr());
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showMonthModal, setShowMonthModal] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => Number(getCurrentMonthStr().split('-')[0]) || new Date().getFullYear());
 
   // Hardware back button handler — active ONLY when Home screen tab is focused
   useFocusEffect(
@@ -156,10 +175,17 @@ export default function HomeScreen() {
 
   const utilizationPct = dashboard?.budgets?.overallUtilizationPercentage ?? 0;
 
+  // ── Monthly Budget Calculations ─────────────────────────
+  const availableBudget = dashboard?.budgets?.availableExpenseBudget ?? dashboard?.budgets?.totalBudget ?? 0;
+  const budgetSpent = dashboard?.budgets?.totalSpent ?? monthExpense;
+  const remainingBudget = dashboard?.budgets?.remainingBudget ?? Math.max(0, availableBudget - budgetSpent);
+  const budgetUtil = availableBudget > 0 ? Math.round((budgetSpent / availableBudget) * 100) : utilizationPct;
+
   return (
     <ScreenWrapper
       scrollable
       style={{ backgroundColor: '#F0F4FF', flex: 1 }}
+      contentContainerStyle={{ paddingBottom: 130 }}
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
@@ -188,23 +214,43 @@ export default function HomeScreen() {
 
       {/* ── Month Selector ───────────────────────────────── */}
       <View style={styles.monthSelector}>
-        <Pressable onPress={handlePrevMonth} style={styles.chevronBtn}>
+        <Pressable onPress={handlePrevMonth} style={styles.chevronBtn} accessibilityLabel="Previous Month">
           <ChevronLeft size={20} color="#1565C0" />
         </Pressable>
 
-        <View style={styles.monthCenter}>
+        <Pressable
+          onPress={() => {
+            const [y] = selectedMonth.split('-').map(Number);
+            setPickerYear(y || new Date().getFullYear());
+            setShowMonthModal(true);
+          }}
+          style={styles.monthCenter}
+          accessibilityLabel="Open Month Picker"
+        >
           <Calendar size={14} color="#1565C0" />
           <Text style={styles.monthText}>{formatMonthYear(selectedMonth)}</Text>
-          {isCurrentMonth && (
+          {isCurrentMonth ? (
             <View style={styles.currentBadge}>
               <Text style={styles.currentBadgeText}>Current</Text>
             </View>
+          ) : (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>Selected</Text>
+            </View>
           )}
-        </View>
+        </Pressable>
 
-        <Pressable onPress={handleNextMonth} style={styles.chevronBtn}>
+        <Pressable onPress={handleNextMonth} style={styles.chevronBtn} accessibilityLabel="Next Month">
           <ChevronRight size={20} color="#1565C0" />
         </Pressable>
+      </View>
+
+      {/* ── Active Month Date Range Subtitle ─────────────── */}
+      <View style={styles.dateRangeRow}>
+        <CalendarDays size={13} color="#1565C0" strokeWidth={2.4} />
+        <Text style={styles.dateRangeText}>
+          {getMonthDateRange(selectedMonth)}
+        </Text>
       </View>
 
       {isLoading ? (
@@ -358,25 +404,41 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* ── Budget Overview ───────────────────────────── */}
+          {/* ── Monthly Budget Management Overview ───────────────────────────── */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.rowCenter}>
-                <PieChart size={15} color="#1565C0" />
-                <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>Monthly Budgets</Text>
+                <PieChart size={16} color="#1565C0" />
+                <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>Monthly Budget</Text>
               </View>
               <Pressable onPress={() => router.push('/(tabs)/budgets')}>
-                <Text style={styles.seeAllText}>View Details →</Text>
+                <Text style={styles.seeAllText}>Manage Budgets →</Text>
               </Pressable>
             </View>
 
-            <View style={styles.budgetAmountRow}>
-              <Text style={styles.budgetSpent}>
-                {formatPaise(dashboard?.budgets?.totalSpent ?? 0)}
-              </Text>
-              <Text style={styles.budgetLimit}>
-                of {formatPaise(dashboard?.budgets?.totalBudget ?? 0)} limit
-              </Text>
+            {/* 3-Column Financial Metrics Grid */}
+            <View style={styles.budgetMetricsRow}>
+              <View style={styles.budgetMetricItem}>
+                <Text style={styles.budgetMetricLabel}>EXPENSE BUDGET</Text>
+                <Text style={styles.budgetMetricVal}>{formatPaise(availableBudget)}</Text>
+                <Text style={styles.budgetMetricSub}>Income − Savings</Text>
+              </View>
+              <View style={styles.budgetMetricDivider} />
+              <View style={styles.budgetMetricItem}>
+                <Text style={styles.budgetMetricLabel}>TOTAL SPENT</Text>
+                <Text style={[styles.budgetMetricVal, { color: '#DC2626' }]}>
+                  {formatPaise(budgetSpent)}
+                </Text>
+                <Text style={styles.budgetMetricSub}>{budgetUtil}% utilized</Text>
+              </View>
+              <View style={styles.budgetMetricDivider} />
+              <View style={styles.budgetMetricItem}>
+                <Text style={styles.budgetMetricLabel}>REMAINING</Text>
+                <Text style={[styles.budgetMetricVal, { color: '#059669' }]}>
+                  {formatPaise(remainingBudget)}
+                </Text>
+                <Text style={styles.budgetMetricSub}>Available left</Text>
+              </View>
             </View>
 
             {/* Progress Bar */}
@@ -385,13 +447,13 @@ export default function HomeScreen() {
                 style={[
                   styles.progressFill,
                   {
-                    width: `${Math.min(utilizationPct, 100)}%` as `${number}%`,
+                    width: `${Math.min(budgetUtil, 100)}%` as `${number}%`,
                     backgroundColor:
-                      utilizationPct > 100
-                        ? '#F44336'
-                        : utilizationPct >= 80
-                        ? '#FF9800'
-                        : '#4CAF50',
+                      budgetUtil > 100
+                        ? '#DC2626'
+                        : budgetUtil >= 80
+                        ? '#F59E0B'
+                        : '#10B981',
                   },
                 ]}
               />
@@ -399,13 +461,17 @@ export default function HomeScreen() {
 
             <View style={styles.budgetFooter}>
               <Text style={styles.budgetUtilText}>
-                Utilization: {utilizationPct}%
+                {budgetUtil}% of expense budget spent
               </Text>
-              {utilizationPct >= 80 && (
+              {budgetUtil >= 80 ? (
                 <Badge
-                  label={utilizationPct > 100 ? 'Exceeded' : 'Warning'}
-                  variant={utilizationPct > 100 ? 'critical' : 'warning'}
+                  label={budgetUtil > 100 ? 'Budget Exceeded' : 'Near Limit'}
+                  variant={budgetUtil > 100 ? 'critical' : 'warning'}
                 />
+              ) : (
+                <View style={styles.onTrackBadge}>
+                  <Text style={styles.onTrackBadgeText}>On Track</Text>
+                </View>
               )}
             </View>
           </View>
@@ -471,7 +537,22 @@ export default function HomeScreen() {
 
             {dashboard?.recentTransactions && dashboard.recentTransactions.length > 0 ? (
               <View style={styles.txCardsContainer}>
-                {dashboard.recentTransactions.slice(0, 4).map((tx) => {
+                {[...dashboard.recentTransactions]
+                  .sort((a, b) => {
+                    const timeA = new Date(a.date).getTime();
+                    const timeB = new Date(b.date).getTime();
+                    if (timeB !== timeA) return timeB - timeA;
+                    if (a.createdAt && b.createdAt) {
+                      const createdA = new Date(a.createdAt).getTime();
+                      const createdB = new Date(b.createdAt).getTime();
+                      if (createdB !== createdA) return createdB - createdA;
+                    }
+                    const idA = a._id || a.id || '';
+                    const idB = b._id || b.id || '';
+                    return idB.localeCompare(idA);
+                  })
+                  .slice(0, 4)
+                  .map((tx) => {
                   const { text } = formatTransactionAmount(tx.type, tx.amount);
                   const isIncome = tx.type === 'income' || tx.type === 'refund';
                   const amountColor = isIncome ? '#059669' : '#DC2626';
@@ -481,33 +562,32 @@ export default function HomeScreen() {
                     <Pressable
                       key={tx._id || tx.id}
                       onPress={() => router.push(`/transaction/${tx._id || tx.id}`)}
-                      style={({ pressed }) => [
-                        styles.recentTxCard,
-                        pressed && { backgroundColor: '#F8FAFC' },
-                      ]}
+                      style={styles.recentTxPressable}
                     >
-                      {/* Category Icon */}
-                      <View style={[styles.txIconCircle, { backgroundColor: catColor + '15', borderColor: catColor + '30' }]}>
-                        {renderCategoryIcon(tx.category, catColor, 18)}
-                      </View>
-
-                      {/* Description + meta */}
-                      <View style={styles.txMiddle}>
-                        <Text style={styles.txDesc} numberOfLines={1}>
-                          {tx.description}
-                        </Text>
-                        <View style={styles.txMeta}>
-                          <View style={[styles.txCategoryPill, { backgroundColor: catColor + '15' }]}>
-                            <Text style={[styles.txCategoryText, { color: catColor }]}>{tx.category}</Text>
-                          </View>
-                          <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
+                      <View style={styles.recentTxCard}>
+                        {/* Category Icon */}
+                        <View style={[styles.txIconCircle, { backgroundColor: catColor + '15', borderColor: catColor + '30' }]}>
+                          {renderCategoryIcon(tx.category, catColor, 18)}
                         </View>
-                      </View>
 
-                      {/* Amount */}
-                      <Text style={[styles.txAmount, { color: amountColor }]}>
-                        {text}
-                      </Text>
+                        {/* Description + meta */}
+                        <View style={styles.txMiddle}>
+                          <Text style={styles.txDesc} numberOfLines={1}>
+                            {tx.description}
+                          </Text>
+                          <View style={styles.txMeta}>
+                            <View style={[styles.txCategoryPill, { backgroundColor: catColor + '15' }]}>
+                              <Text style={[styles.txCategoryText, { color: catColor }]}>{tx.category}</Text>
+                            </View>
+                            <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
+                          </View>
+                        </View>
+
+                        {/* Amount */}
+                        <Text style={[styles.txAmount, { color: amountColor }]}>
+                          {text}
+                        </Text>
+                      </View>
                     </Pressable>
                   );
                 })}
@@ -526,6 +606,92 @@ export default function HomeScreen() {
           <View style={{ height: 110 }} />
         </>
       )}
+
+      {/* ── Custom Month Picker Modal (Centered) ───────────── */}
+      <Modal
+        visible={showMonthModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMonthModal(false)}
+      >
+        <View style={styles.monthModalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowMonthModal(false)}
+          />
+
+          <View style={styles.monthModalCard}>
+            {/* Header: Eyebrow + Title + Close */}
+            <View style={styles.monthModalHeader}>
+              <View>
+                <Text style={styles.monthModalEyebrow}>TIMEFRAME SELECTOR</Text>
+                <Text style={styles.monthModalTitle}>Choose Month</Text>
+              </View>
+              <Pressable
+                onPress={() => setShowMonthModal(false)}
+                style={styles.monthModalCloseBtn}
+                accessibilityLabel="Close Month Picker"
+              >
+                <X size={18} color="#475569" />
+              </Pressable>
+            </View>
+
+            {/* Year Switcher Bar */}
+            <View style={styles.yearSwitcher}>
+              <Pressable
+                onPress={() => setPickerYear((y) => y - 1)}
+                style={styles.yearArrowBtn}
+              >
+                <ChevronLeft size={18} color="#1565C0" strokeWidth={2.5} />
+              </Pressable>
+              <Text style={styles.yearLabel}>{pickerYear}</Text>
+              <Pressable
+                onPress={() => setPickerYear((y) => y + 1)}
+                style={styles.yearArrowBtn}
+              >
+                <ChevronRight size={18} color="#1565C0" strokeWidth={2.5} />
+              </Pressable>
+            </View>
+
+            {/* 12-Month Grid */}
+            <View style={styles.monthGrid}>
+              {MONTH_NAMES.map((name, idx) => {
+                const monthStr = `${pickerYear}-${String(idx + 1).padStart(2, '0')}`;
+                const isSelected = selectedMonth === monthStr;
+                const isCurrent = getCurrentMonthStr() === monthStr;
+
+                return (
+                  <Pressable
+                    key={name}
+                    onPress={() => {
+                      setSelectedMonth(monthStr);
+                      setShowMonthModal(false);
+                    }}
+                    style={[
+                      styles.monthCell,
+                      isSelected && styles.monthCellSelected,
+                      isCurrent && !isSelected && styles.monthCellCurrent,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.monthCellText,
+                        isSelected && styles.monthCellTextSelected,
+                        isCurrent && !isSelected && styles.monthCellTextCurrent,
+                      ]}
+                    >
+                      {name}
+                    </Text>
+                    {isCurrent && !isSelected && (
+                      <View style={styles.monthCellDot} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Android Hardware Back Press Exit Modal */}
       <ConfirmModal
@@ -634,6 +800,39 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0284C7',
     textTransform: 'uppercase',
+  },
+  filterBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1565C0',
+    textTransform: 'uppercase',
+  },
+  dateRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignSelf: 'center',
+  },
+  dateRangeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1565C0',
+    letterSpacing: 0.3,
   },
 
   // ── Hero Card ───────────────────────────────────────────────
@@ -807,6 +1006,58 @@ const styles = StyleSheet.create({
   },
 
   // ── Budget Overview ─────────────────────────────────────────
+  budgetMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  budgetMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  budgetMetricLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  budgetMetricVal: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  budgetMetricSub: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  budgetMetricDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#CBD5E1',
+  },
+  onTrackBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  onTrackBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+    textTransform: 'uppercase',
+  },
   budgetAmountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -879,27 +1130,38 @@ const styles = StyleSheet.create({
   // ── Recent Transactions Cards ───────────────────────────────
   txCardsContainer: {
     gap: 10,
+    width: '100%',
+  },
+  recentTxPressable: {
+    width: '100%',
   },
   recentTxCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 14,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    gap: 12,
+    backgroundColor: '#F8FAFC',
+    width: '100%',
   },
   txIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    flexShrink: 0,
   },
   txMiddle: {
     flex: 1,
+    minWidth: 0,
+    marginLeft: 12,
+    marginRight: 8,
+    justifyContent: 'center',
     gap: 4,
   },
   txDesc: {
@@ -928,7 +1190,132 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   txAmount: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
+    flexShrink: 0,
+  },
+  // ── Month Picker Modal Styles ──────────────────────────────
+  monthModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  monthModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  monthModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  monthModalEyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1565C0',
+    letterSpacing: 1,
+  },
+  monthModalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  monthModalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yearSwitcher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  yearArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  yearLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  monthCell: {
+    width: '30%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    position: 'relative',
+  },
+  monthCellSelected: {
+    backgroundColor: '#1565C0',
+    borderColor: '#1565C0',
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  monthCellCurrent: {
+    borderColor: '#1565C0',
+  },
+  monthCellText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  monthCellTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  monthCellTextCurrent: {
+    color: '#1565C0',
+  },
+  monthCellDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#1565C0',
   },
 });

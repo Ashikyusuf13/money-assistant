@@ -7,6 +7,7 @@ import {
   TextInput,
   StyleSheet,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -30,6 +31,7 @@ import {
   Heart,
   Film,
   Package,
+  TrendingDown,
 } from 'lucide-react-native';
 import { formatPaise } from '@/src/utils/currency';
 
@@ -59,6 +61,7 @@ export default function AddExpenseScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    if (createMutation.isPending) return;
     setErrorMsg(null);
     if (paiseAmount <= 0) {
       setErrorMsg('Please enter an expense amount greater than ₹0.');
@@ -209,18 +212,27 @@ export default function AddExpenseScreen() {
       <Pressable
         onPress={handleSubmit}
         disabled={createMutation.isPending}
-        style={({ pressed }) => [
-          styles.submitBtn,
-          pressed && styles.submitBtnPressed,
-          createMutation.isPending && styles.submitBtnDisabled,
+        style={[
+          styles.submitPressable,
+          createMutation.isPending && styles.submitPressableDisabled,
         ]}
       >
-        <Text style={styles.submitBtnLabel}>
-          {createMutation.isPending ? 'Saving Expense…' : 'Save Expense'}
-        </Text>
+        <View style={[
+          styles.submitBtnInner,
+          createMutation.isPending && styles.submitBtnInnerDisabled,
+        ]}>
+          {createMutation.isPending ? (
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+          ) : (
+            <TrendingDown size={18} color="#FFFFFF" strokeWidth={2.8} />
+          )}
+          <Text style={styles.submitBtnLabel}>
+            {createMutation.isPending ? 'Saving Expense…' : 'Save Expense'}
+          </Text>
+        </View>
       </Pressable>
 
-      <View style={{ height: 36 }} />
+      <View style={{ height: 60 }} />
     </ScreenWrapper>
   );
 }
@@ -369,26 +381,31 @@ const styles = StyleSheet.create({
     color: '#1E40AF',
   },
   // Solid Button with centered text (Request 7)
-  submitBtn: {
-    backgroundColor: '#DC2626',
-    borderRadius: 16,
+  submitPressable: {
     marginHorizontal: 16,
     marginTop: 20,
-    paddingVertical: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  submitPressableDisabled: {
+    opacity: 0.7,
+  },
+  submitBtnInner: {
+    backgroundColor: '#DC2626',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 6,
   },
-  submitBtnPressed: {
-    backgroundColor: '#B91C1C',
-    transform: [{ scale: 0.985 }],
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
+  submitBtnInnerDisabled: {
+    backgroundColor: '#991B1B',
   },
   submitBtnLabel: {
     fontSize: 16,

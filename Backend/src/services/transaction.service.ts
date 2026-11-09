@@ -126,12 +126,23 @@ export async function createTransaction(
     }
   }
 
+  // 4. Determine Transaction Date (use current timestamp if recorded for today)
+  let txDate = new Date();
+  if (input.date) {
+    const parsed = new Date(input.date);
+    const todayStr = txDate.toISOString().split('T')[0];
+    const parsedStr = !isNaN(parsed.getTime()) ? parsed.toISOString().split('T')[0] : '';
+    if (parsedStr && parsedStr !== todayStr) {
+      txDate = parsed;
+    }
+  }
+
   // 4. Create Transaction
   const transaction = await Transaction.create({
     userId: userObjectId,
     type: input.type,
     amount: input.amount,
-    date: input.date ? new Date(input.date) : new Date(),
+    date: txDate,
     category: input.category.toLowerCase(),
     description: input.description,
     accountId: accountObjectId,
@@ -213,11 +224,21 @@ export async function listTransactions(
   const skip = (page - 1) * limit;
 
   const sortDirection = query.sortOrder === 'asc' ? 1 : -1;
-  const sortOptions: Record<string, 1 | -1> = { [query.sortBy]: sortDirection };
+  const sortOptions: Record<string, 1 | -1> = {
+    [query.sortBy]: sortDirection,
+    createdAt: sortDirection,
+    _id: sortDirection,
+  };
 
   const [transactions, total] = await Promise.all([
-    Transaction.find(filter).sort(sortOptions).skip(skip).limit(limit),
-    Transaction.countDocuments(filter),
+    Transaction.find(filter)
+      .select('description amount type category date accountId toAccountId originalTransactionId createdAt')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec() as unknown as Promise<ITransactionDocument[]>,
+    Transaction.countDocuments(filter).exec(),
   ]);
 
   return {

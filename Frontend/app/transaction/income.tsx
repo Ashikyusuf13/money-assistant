@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Platform,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -67,7 +68,10 @@ export default function AddIncomeScreen() {
     }
   }, [salary]);
 
+  const isSubmitting = createMutation.isPending || setupSalaryMutation.isPending;
+
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     setErrorMsg(null);
     if (paiseAmount <= 0) {
       setErrorMsg('Please enter an income amount greater than ₹0.');
@@ -243,19 +247,28 @@ export default function AddIncomeScreen() {
       {/* ── Solid Centered Action Button (Request 7) ── */}
       <Pressable
         onPress={handleSubmit}
-        disabled={createMutation.isPending || setupSalaryMutation.isPending}
-        style={({ pressed }) => [
-          styles.submitBtn,
-          pressed && styles.submitBtnPressed,
-          (createMutation.isPending || setupSalaryMutation.isPending) && styles.submitBtnDisabled,
+        disabled={isSubmitting}
+        style={[
+          styles.submitPressable,
+          isSubmitting && styles.submitPressableDisabled,
         ]}
       >
-        <Text style={styles.submitBtnLabel}>
-          {createMutation.isPending || setupSalaryMutation.isPending ? 'Recording Income…' : 'Record Income'}
-        </Text>
+        <View style={[
+          styles.submitBtnInner,
+          isSubmitting && styles.submitBtnInnerDisabled,
+        ]}>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+          ) : (
+            <TrendingUp size={18} color="#FFFFFF" strokeWidth={2.8} />
+          )}
+          <Text style={styles.submitBtnLabel}>
+            {isSubmitting ? 'Recording Income…' : 'Record Income'}
+          </Text>
+        </View>
       </Pressable>
 
-      <View style={{ height: 36 }} />
+      <View style={{ height: 60 }} />
     </ScreenWrapper>
   );
 }
@@ -432,26 +445,31 @@ const styles = StyleSheet.create({
     color: '#1E40AF',
   },
   // Solid Button with centered text (Request 7)
-  submitBtn: {
-    backgroundColor: '#059669',
-    borderRadius: 16,
+  submitPressable: {
     marginHorizontal: 16,
     marginTop: 20,
-    paddingVertical: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  submitPressableDisabled: {
+    opacity: 0.7,
+  },
+  submitBtnInner: {
+    backgroundColor: '#059669',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
     shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 6,
   },
-  submitBtnPressed: {
-    backgroundColor: '#047857',
-    transform: [{ scale: 0.985 }],
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
+  submitBtnInnerDisabled: {
+    backgroundColor: '#065F46',
   },
   submitBtnLabel: {
     fontSize: 16,

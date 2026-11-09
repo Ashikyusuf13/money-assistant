@@ -42,7 +42,7 @@ export interface GoalDetailResponse extends EnrichedGoal {
   contributions: IGoalContributionDocument[];
 }
 
-function calculatePace(
+export function calculatePace(
   targetAmount: number,
   currentAmount: number,
   targetDate: Date,

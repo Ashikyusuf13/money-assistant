@@ -211,7 +211,8 @@ export default function ReportsScreen() {
   return (
     <ScreenWrapper
       scrollable
-      style={styles.wrapper}
+      style={{ backgroundColor: '#F0F4FF', flex: 1 }}
+      contentContainerStyle={styles.scrollContent}
       refreshControl={
         <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#1565C0" />
       }
@@ -226,20 +227,18 @@ export default function ReportsScreen() {
         <Pressable
           onPress={handleDownloadPDF}
           disabled={isExporting}
-          style={({ pressed }) => [
-            styles.downloadPdfBtn,
-            pressed && { opacity: 0.8 },
-            isExporting && { opacity: 0.6 },
-          ]}
+          style={styles.downloadPdfBtn}
         >
-          {isExporting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <FileDown size={16} color="#FFFFFF" />
-              <Text style={styles.downloadPdfText}>Download PDF</Text>
-            </>
-          )}
+          <View style={styles.downloadPdfBtnInner}>
+            {isExporting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <FileDown size={16} color="#FFFFFF" strokeWidth={2.5} />
+                <Text style={styles.downloadPdfText}>Download PDF</Text>
+              </>
+            )}
+          </View>
         </Pressable>
       </View>
 
@@ -521,10 +520,11 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: '#F0F4FF',
+  scrollContent: {
+    width: '100%',
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 10,
+    paddingBottom: 110,
   },
   header: {
     flexDirection: 'row',
@@ -532,6 +532,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     marginBottom: 8,
+    width: '100%',
   },
   headerEyebrow: {
     fontSize: 10,
@@ -546,18 +547,23 @@ const styles = StyleSheet.create({
     color: '#0D1B3E',
   },
   downloadPdfBtn: {
+    backgroundColor: '#1565C0',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  downloadPdfBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#1565C0',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 14,
-    shadowColor: '#1565C0',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
   },
   downloadPdfText: {
     fontSize: 12,

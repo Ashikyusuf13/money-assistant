@@ -136,6 +136,9 @@ transactionSchema.index({ userId: 1, type: 1, date: -1 });
 transactionSchema.index({ userId: 1, category: 1, date: -1 });
 transactionSchema.index({ userId: 1, accountId: 1, date: -1 });
 transactionSchema.index({ userId: 1, isArchived: 1, date: -1 });
+transactionSchema.index({ userId: 1, isArchived: 1, type: 1, date: -1 });
+transactionSchema.index({ userId: 1, isArchived: 1, category: 1, date: -1 });
+transactionSchema.index({ userId: 1, isArchived: 1, type: 1, category: 1, date: -1 });
 transactionSchema.index(
   { userId: 1, idempotencyKey: 1 },
   {

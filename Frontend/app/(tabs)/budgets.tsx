@@ -27,6 +27,7 @@ import {
   useDeleteBudget,
 } from '@/src/hooks/useBudgets';
 import { useSalary } from '@/src/hooks/useSalary';
+import { useDashboard } from '@/src/hooks/useDashboard';
 import { formatPaise } from '@/src/utils/currency';
 import { formatMonthYear, getCurrentMonthStr } from '@/src/utils/date';
 import { Budget } from '@/src/types/api';
@@ -156,6 +157,7 @@ export default function BudgetsScreen() {
   const { data: budgets, isLoading, isRefetching, refetch } = useBudgets(selectedMonth);
   const { data: alerts } = useBudgetAlerts();
   const { data: salary, refetch: refetchSalary } = useSalary();
+  const { data: dashboard, refetch: refetchDashboard } = useDashboard(selectedMonth);
 
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
@@ -251,27 +253,49 @@ export default function BudgetsScreen() {
     ? (budgets as any).budgets
     : [];
 
-  // Salary Pool & Budget Deduction Summaries
+  // ── Financial Calculations (Section 2 Specification) ───────────
+  // 1. Total Income = All income transactions for the selected month (or starting profile salary)
   const baseSalary = salary?.baseMonthlySalary ?? 0;
-  const totalBudget = budgetList.reduce((acc, b) => acc + (b.amount || 0), 0);
-  const totalSpent = budgetList.reduce((acc, b) => acc + (b.spent || 0), 0);
-  
-  // Total pool starts with Main Wallet Salary (fallback to totalBudget if no salary set)
-  const salaryPool = baseSalary > 0 ? baseSalary : totalBudget;
-  // Remaining salary unspent after all category expenses
-  const remainingSalary = Math.max(0, salaryPool - totalSpent);
-  const overallPct = salaryPool > 0 ? Math.round((totalSpent / salaryPool) * 100) : 0;
+  const totalIncome = baseSalary > 0
+    ? baseSalary
+    : (dashboard?.monthlySummary?.income ?? 0);
+
+  // 2. Savings Target = User-defined savings goal
+  const savingsTarget = dashboard?.budgets?.savingsTarget ?? 0;
+
+  // 3. Category Budgets Total (Allocated)
+  const totalCategoryBudget = budgetList.reduce((acc, b) => acc + (b.amount || 0), 0);
+
+  // 4. Available Expense Budget = Total Income - Savings Target
+  // If user has set specific category limits, totalCategoryBudget applies, otherwise available expense budget
+  const availableExpenseBudget = totalCategoryBudget > 0
+    ? totalCategoryBudget
+    : Math.max(0, totalIncome - savingsTarget);
+
+  // 5. Total Expenses = All valid expense transactions for the selected month
+  const totalSpent = dashboard?.monthlySummary?.expense ?? budgetList.reduce((acc, b) => acc + (b.spent || 0), 0);
+
+  // 6. Remaining Budget = Available Expense Budget - Total Expenses
+  const remainingBudget = Math.max(0, availableExpenseBudget - totalSpent);
+
+  // 7. Budget Utilization = (Total Expenses / Available Expense Budget) × 100
+  const overallPct = availableExpenseBudget > 0 ? Math.round((totalSpent / availableExpenseBudget) * 100) : 0;
+
+  // 8. Remaining Account Balance = Total Income - Total Expenses (Distinct from remaining budget!)
+  const remainingAccountBalance = Math.max(0, totalIncome - totalSpent);
 
   return (
     <ScreenWrapper
       scrollable
-      style={styles.wrapper}
+      style={{ backgroundColor: '#F0F4FF', flex: 1 }}
+      contentContainerStyle={styles.scrollContent}
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
           onRefresh={() => {
             void refetch();
             void refetchSalary();
+            void refetchDashboard();
           }}
           tintColor="#1565C0"
           colors={['#1565C0']}
@@ -337,25 +361,23 @@ export default function BudgetsScreen() {
         </View>
       )}
 
-      {/* ── Summary Card (Main Wallet Salary Deduction Pool) ───────────────────────────────────── */}
+      {/* ── Summary Card (Financial Budget Engine) ───────────────────────────────────── */}
       <View style={styles.summaryCard}>
         {/* Top row */}
         <View style={styles.summaryTopRow}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Wallet size={14} color="#90CAF9" />
-              <Text style={styles.summaryEyebrow}>
-                {baseSalary > 0 ? 'Salary Pool Deduction' : 'Monthly Category Budget'}
-              </Text>
+              <Text style={styles.summaryEyebrow}>Available Expense Budget</Text>
             </View>
             <Text style={styles.summarySpent}>
               {formatPaise(totalSpent)}
-              <Text style={styles.summaryOf}> / {formatPaise(salaryPool)}</Text>
+              <Text style={styles.summaryOf}> / {formatPaise(availableExpenseBudget)}</Text>
             </Text>
             <Text style={styles.salaryPoolSub}>
-              {baseSalary > 0
-                ? `Main Wallet Salary Pool: ${formatPaise(baseSalary)}`
-                : `Total Budget Limits: ${formatPaise(totalBudget)}`}
+              {totalCategoryBudget > 0
+                ? `Category Limits: ${formatPaise(totalCategoryBudget)} (Allocated)`
+                : `Total Income: ${formatPaise(totalIncome)} − Savings: ${formatPaise(savingsTarget)}`}
             </Text>
           </View>
 
@@ -379,15 +401,17 @@ export default function BudgetsScreen() {
           />
         </View>
 
-        {/* Footer: Allocated to categories vs remaining unspent */}
+        {/* Footer: Remaining Expense Budget vs Remaining Wallet Balance */}
         <View style={styles.summaryFooter}>
           <View>
-            <Text style={styles.summaryFooterLabel}>Allocated to Categories</Text>
-            <Text style={styles.allocatedSub}>{formatPaise(totalBudget)}</Text>
+            <Text style={styles.summaryFooterLabel}>Remaining Budget</Text>
+            <Text style={[styles.allocatedSub, { color: '#FFFFFF' }]}>
+              {formatPaise(remainingBudget)}
+            </Text>
           </View>
           <View style={styles.summaryRemainingPill}>
             <Text style={styles.summaryRemainingText}>
-              Remaining Salary: {formatPaise(remainingSalary)}
+              Wallet Balance: {formatPaise(remainingAccountBalance)}
             </Text>
           </View>
         </View>
@@ -600,11 +624,11 @@ export default function BudgetsScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: '#F0F4FF',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+  scrollContent: {
     width: '100%',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 110,
   },
 
   // Header

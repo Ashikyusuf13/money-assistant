@@ -7,6 +7,7 @@ import {
   TextInput,
   StyleSheet,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -94,6 +95,7 @@ export default function AddTransactionScreen() {
   }, [accounts]);
 
   const handleSubmit = async () => {
+    if (createMutation.isPending) return;
     setErrorMsg(null);
 
     if (paiseAmount <= 0) {
@@ -363,19 +365,22 @@ export default function AddTransactionScreen() {
       <Pressable
         onPress={handleSubmit}
         disabled={createMutation.isPending}
-        style={({ pressed }) => [
-          styles.submitBtn,
-          { backgroundColor: activeColor },
-          pressed && styles.submitBtnPressed,
-          createMutation.isPending && styles.submitBtnDisabled,
+        style={[
+          styles.submitPressable,
+          createMutation.isPending && { opacity: 0.7 },
         ]}
       >
-        <Text style={styles.submitBtnLabel}>
-          {createMutation.isPending ? 'Saving…' : submitLabel}
-        </Text>
+        <View style={[styles.submitBtnInner, { backgroundColor: activeColor, shadowColor: activeColor }]}>
+          {createMutation.isPending && (
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+          )}
+          <Text style={styles.submitBtnLabel}>
+            {createMutation.isPending ? 'Saving…' : submitLabel}
+          </Text>
+        </View>
       </Pressable>
 
-      <View style={{ height: 32 }} />
+      <View style={{ height: 60 }} />
     </ScreenWrapper>
   );
 }
@@ -653,25 +658,23 @@ const styles = StyleSheet.create({
   },
 
   // Submit
-  submitBtn: {
+  submitPressable: {
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 16,
     borderRadius: 16,
+    overflow: 'hidden',
+  },
+  submitBtnInner: {
+    flexDirection: 'row',
+    gap: 8,
     paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1565C0',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 6,
-  },
-  submitBtnPressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.985 }],
-  },
-  submitBtnDisabled: {
-    opacity: 0.55,
   },
   submitBtnLabel: {
     fontSize: 16,

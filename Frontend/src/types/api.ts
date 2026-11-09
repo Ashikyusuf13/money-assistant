@@ -182,8 +182,12 @@ export interface DashboardData {
     overallProgressPercentage: number;
   };
   budgets: {
+    totalIncome?: number;
+    savingsTarget?: number;
+    availableExpenseBudget?: number;
     totalBudget: number;
     totalSpent: number;
+    remainingBudget?: number;
     overallUtilizationPercentage: number;
   };
   goals: {

@@ -41,6 +41,9 @@ export function useTransactions(filters: TransactionFilters = {}) {
       );
       return response.data.data;
     },
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -78,6 +81,8 @@ export function useCreateTransaction() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
+      void queryClient.refetchQueries({ queryKey: ['dashboard'] });
+      void queryClient.refetchQueries({ queryKey: ['transactions'] });
     },
   });
 }
