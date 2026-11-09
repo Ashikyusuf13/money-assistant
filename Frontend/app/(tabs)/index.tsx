@@ -20,6 +20,7 @@ import {
 } from '@/src/components/ui';
 import { useAuthStore } from '@/src/store/authStore';
 import { useDashboard } from '@/src/hooks/useDashboard';
+import { useSalary } from '@/src/hooks/useSalary';
 import { formatPaise, formatTransactionAmount } from '@/src/utils/currency';
 import { formatDate, formatMonthYear, getCurrentMonthStr } from '@/src/utils/date';
 import {
@@ -33,15 +34,73 @@ import {
   ChevronLeft,
   ChevronRight,
   PieChart,
-  Target,
   FileText,
   BarChart3,
   CircleDollarSign,
-  Bell,
   Wallet,
-  Bot,
   Minus,
+  Utensils,
+  ShoppingCart,
+  Car,
+  ShoppingBag,
+  Zap,
+  Heart,
+  Film,
+  Briefcase,
+  ArrowLeftRight,
+  RotateCcw,
+  Package,
 } from 'lucide-react-native';
+
+const CATEGORY_COLORS: Record<string, string> = {
+  food: '#D97706',
+  groceries: '#EA580C',
+  transport: '#0284C7',
+  shopping: '#DB2777',
+  bills: '#CA8A04',
+  health: '#DC2626',
+  entertainment: '#9333EA',
+  salary: '#059669',
+  income: '#059669',
+  transfer: '#4F46E5',
+  refund: '#0891B2',
+  others: '#64748B',
+};
+
+function getCategoryColor(category: string): string {
+  return CATEGORY_COLORS[(category || '').toLowerCase()] ?? '#64748B';
+}
+
+function renderCategoryIcon(category: string, color: string, size = 18) {
+  const cat = (category || '').toLowerCase();
+  switch (cat) {
+    case 'food':
+      return <Utensils size={size} color={color} strokeWidth={2.2} />;
+    case 'groceries':
+      return <ShoppingCart size={size} color={color} strokeWidth={2.2} />;
+    case 'transport':
+      return <Car size={size} color={color} strokeWidth={2.2} />;
+    case 'shopping':
+      return <ShoppingBag size={size} color={color} strokeWidth={2.2} />;
+    case 'bills':
+    case 'utilities':
+      return <Zap size={size} color={color} strokeWidth={2.2} />;
+    case 'health':
+      return <Heart size={size} color={color} strokeWidth={2.2} />;
+    case 'entertainment':
+      return <Film size={size} color={color} strokeWidth={2.2} />;
+    case 'salary':
+      return <Briefcase size={size} color={color} strokeWidth={2.2} />;
+    case 'income':
+      return <CircleDollarSign size={size} color={color} strokeWidth={2.2} />;
+    case 'transfer':
+      return <ArrowLeftRight size={size} color={color} strokeWidth={2.2} />;
+    case 'refund':
+      return <RotateCcw size={size} color={color} strokeWidth={2.2} />;
+    default:
+      return <Package size={size} color={color} strokeWidth={2.2} />;
+  }
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -62,7 +121,12 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const { data: dashboard, isLoading, isRefetching, refetch } = useDashboard(selectedMonth);
+  const { data: dashboard, isLoading, isRefetching, refetch: refetchDashboard } = useDashboard(selectedMonth);
+  const { data: salary, refetch: refetchSalary } = useSalary();
+
+  const handleRefresh = async () => {
+    await Promise.all([refetchDashboard(), refetchSalary()]);
+  };
 
   // Month navigation helpers
   const handlePrevMonth = () => {
@@ -81,7 +145,15 @@ export default function HomeScreen() {
 
   const isCurrentMonth = selectedMonth === getCurrentMonthStr();
 
-  const netCashFlow = dashboard?.monthlySummary?.netCashFlow ?? 0;
+  // Salary and month balance calculation
+  // Total base monthly salary set in profile, or dashboard income as fallback
+  const startingSalary = (salary?.baseMonthlySalary && salary.baseMonthlySalary > 0)
+    ? salary.baseMonthlySalary
+    : (dashboard?.monthlySummary?.income ?? 0);
+  const monthExpense = dashboard?.monthlySummary?.expense ?? 0;
+  // If base salary is 12000 and 20 is spent, currentBalance is 11980
+  const currentMonthBalance = startingSalary - monthExpense;
+
   const utilizationPct = dashboard?.budgets?.overallUtilizationPercentage ?? 0;
 
   return (
@@ -91,7 +163,7 @@ export default function HomeScreen() {
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
-          onRefresh={() => void refetch()}
+          onRefresh={handleRefresh}
           tintColor="#1565C0"
           colors={['#1565C0']}
         />
@@ -100,7 +172,7 @@ export default function HomeScreen() {
       {/* ── Header ───────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greetingSub}>Good Morning! ☀️</Text>
+          <Text style={styles.greetingSub}>Good Day</Text>
           <Text style={styles.greetingMain}>
             Hello, {user?.name || 'User'} 👋
           </Text>
@@ -136,7 +208,7 @@ export default function HomeScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ gap: 14, marginTop: 8, marginBottom: 24 }}>
+        <View style={{ gap: 14, marginTop: 8, marginBottom: 24, paddingHorizontal: 16 }}>
           <SkeletonCard height={170} />
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
@@ -167,19 +239,19 @@ export default function HomeScreen() {
             <View style={styles.heroTopRow}>
               <View style={styles.heroLabelRow}>
                 <Wallet size={15} color="#90CAF9" />
-                <Text style={styles.heroLabel}>Current Balance</Text>
+                <Text style={styles.heroLabel}>This Month's Balance</Text>
               </View>
               <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>● Live</Text>
+                <Text style={styles.verifiedText}>● {formatMonthYear(selectedMonth)}</Text>
               </View>
             </View>
 
             {/* Big Balance */}
             <Text style={styles.heroBalance}>
-              {formatPaise(dashboard?.netWealth ?? 0)}
+              {formatPaise(currentMonthBalance)}
             </Text>
             <Text style={styles.heroSubLabel}>
-              Consolidated cash &amp; bank balance
+              Starting: {formatPaise(startingSalary)}  •  Spent: {formatPaise(monthExpense)}
             </Text>
 
             {/* Income / Expense / Net Flow row */}
@@ -187,10 +259,10 @@ export default function HomeScreen() {
               <View style={styles.heroStatCard}>
                 <View style={styles.heroStatHeader}>
                   <TrendingUp size={12} color="#A5D6A7" />
-                  <Text style={styles.heroStatLabel}>Income</Text>
+                  <Text style={styles.heroStatLabel}>Base Salary</Text>
                 </View>
                 <Text style={[styles.heroStatValue, { color: '#A5D6A7' }]}>
-                  {formatPaise(dashboard?.monthlySummary?.income ?? 0)}
+                  {formatPaise(startingSalary)}
                 </Text>
               </View>
 
@@ -202,7 +274,7 @@ export default function HomeScreen() {
                   <Text style={styles.heroStatLabel}>Expenses</Text>
                 </View>
                 <Text style={[styles.heroStatValue, { color: '#EF9A9A' }]}>
-                  {formatPaise(dashboard?.monthlySummary?.expense ?? 0)}
+                  {formatPaise(monthExpense)}
                 </Text>
               </View>
 
@@ -210,22 +282,21 @@ export default function HomeScreen() {
 
               <View style={styles.heroStatCard}>
                 <View style={styles.heroStatHeader}>
-                  {netCashFlow >= 0 ? (
+                  {currentMonthBalance >= 0 ? (
                     <TrendingUp size={12} color="#90CAF9" />
                   ) : (
                     <TrendingDown size={12} color="#FFCC80" />
                   )}
-                  <Text style={styles.heroStatLabel}>Net Flow</Text>
+                  <Text style={styles.heroStatLabel}>Remaining</Text>
                 </View>
                 <Text
                   style={[
                     styles.heroStatValue,
-                    { color: netCashFlow >= 0 ? '#90CAF9' : '#FFCC80' },
+                    { color: currentMonthBalance >= 0 ? '#90CAF9' : '#FFCC80' },
                   ]}
                   numberOfLines={1}
                 >
-                  {netCashFlow >= 0 ? '+' : ''}
-                  {formatPaise(netCashFlow)}
+                  {formatPaise(currentMonthBalance)}
                 </Text>
               </View>
             </View>
@@ -243,35 +314,35 @@ export default function HomeScreen() {
             <View style={styles.quickActionsRow}>
               {/* Add Income */}
               <Pressable
-                onPress={() => router.push('/transaction/add')}
+                onPress={() => router.push('/transaction/income')}
                 style={styles.quickActionItem}
               >
                 <View style={[styles.quickActionCircle, { backgroundColor: '#E8F5E9' }]}>
-                  <Plus size={22} color="#4CAF50" />
+                  <Plus size={22} color="#059669" />
                 </View>
                 <Text style={styles.quickActionLabel}>Add{'\n'}Income</Text>
               </Pressable>
 
               {/* Add Expense */}
               <Pressable
-                onPress={() => router.push('/transaction/add')}
+                onPress={() => router.push('/transaction/expense')}
                 style={styles.quickActionItem}
               >
                 <View style={[styles.quickActionCircle, { backgroundColor: '#FFEBEE' }]}>
-                  <Minus size={22} color="#F44336" />
+                  <Minus size={22} color="#DC2626" />
                 </View>
                 <Text style={styles.quickActionLabel}>Add{'\n'}Expense</Text>
               </Pressable>
 
-              {/* Set Goal */}
+              {/* Budgets */}
               <Pressable
-                onPress={() => router.push('/(tabs)/goals')}
+                onPress={() => router.push('/(tabs)/budgets')}
                 style={styles.quickActionItem}
               >
-                <View style={[styles.quickActionCircle, { backgroundColor: '#F3E5F5' }]}>
-                  <Target size={22} color="#9C27B0" />
+                <View style={[styles.quickActionCircle, { backgroundColor: '#EDE9FE' }]}>
+                  <PieChart size={22} color="#7C3AED" />
                 </View>
-                <Text style={styles.quickActionLabel}>Set{'\n'}Goal</Text>
+                <Text style={styles.quickActionLabel}>Monthly{'\n'}Budgets</Text>
               </Pressable>
 
               {/* Reports */}
@@ -339,35 +410,6 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* ── Savings Goals ─────────────────────────────── */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.rowCenter}>
-                <Target size={15} color="#9C27B0" />
-                <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>Savings Goals</Text>
-              </View>
-              <Pressable onPress={() => router.push('/(tabs)/goals')}>
-                <Text style={[styles.seeAllText, { color: '#9C27B0' }]}>Explore →</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.goalsRow}>
-              <View>
-                <Text style={styles.goalSaved}>
-                  {formatPaise(dashboard?.goals?.totalSaved ?? 0)}
-                </Text>
-                <Text style={styles.goalSavedSub}>
-                  Saved across {dashboard?.goals?.activeGoalsCount ?? 0} active goals
-                </Text>
-              </View>
-              <View style={styles.goalTargetBadge}>
-                <Text style={styles.goalTargetText}>
-                  🎯 {formatPaise(dashboard?.goals?.totalTarget ?? 0)}
-                </Text>
-              </View>
-            </View>
-          </View>
-
           {/* ── Smart Insights ────────────────────────────── */}
           {dashboard?.insights && dashboard.insights.length > 0 && (
             <View style={styles.insightsSection}>
@@ -414,7 +456,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── Recent Transactions ───────────────────────── */}
+          {/* ── Recent Transactions (Latest 4 Records, Clean Cards) ───────────────────────── */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Transactions</Text>
@@ -428,39 +470,25 @@ export default function HomeScreen() {
             </View>
 
             {dashboard?.recentTransactions && dashboard.recentTransactions.length > 0 ? (
-              <View style={{ gap: 0 }}>
-                {dashboard.recentTransactions.slice(0, 5).map((tx, idx) => {
-                  const { text, colorClass } = formatTransactionAmount(tx.type, tx.amount);
-                  const isIncome = tx.type === 'income';
-                  const amountColor = isIncome ? '#4CAF50' : '#F44336';
-
-                  // Generate a consistent color for the category icon
-                  const iconColors = [
-                    '#E3F2FD',
-                    '#F3E5F5',
-                    '#E8F5E9',
-                    '#FFF3E0',
-                    '#FCE4EC',
-                  ];
-                  const iconBg = iconColors[idx % iconColors.length];
-                  const iconTextColors = ['#1565C0', '#9C27B0', '#4CAF50', '#FF9800', '#E91E63'];
-                  const iconColor = iconTextColors[idx % iconTextColors.length];
+              <View style={styles.txCardsContainer}>
+                {dashboard.recentTransactions.slice(0, 4).map((tx) => {
+                  const { text } = formatTransactionAmount(tx.type, tx.amount);
+                  const isIncome = tx.type === 'income' || tx.type === 'refund';
+                  const amountColor = isIncome ? '#059669' : '#DC2626';
+                  const catColor = getCategoryColor(tx.category);
 
                   return (
                     <Pressable
                       key={tx._id || tx.id}
                       onPress={() => router.push(`/transaction/${tx._id || tx.id}`)}
                       style={({ pressed }) => [
-                        styles.txRow,
-                        idx > 0 && styles.txRowBorder,
-                        pressed && { backgroundColor: '#F5F9FF' },
+                        styles.recentTxCard,
+                        pressed && { backgroundColor: '#F8FAFC' },
                       ]}
                     >
-                      {/* Category Icon Circle */}
-                      <View style={[styles.txIconCircle, { backgroundColor: iconBg }]}>
-                        <Text style={[styles.txIconText, { color: iconColor }]}>
-                          {(tx.category || 'T').charAt(0).toUpperCase()}
-                        </Text>
+                      {/* Category Icon */}
+                      <View style={[styles.txIconCircle, { backgroundColor: catColor + '15', borderColor: catColor + '30' }]}>
+                        {renderCategoryIcon(tx.category, catColor, 18)}
                       </View>
 
                       {/* Description + meta */}
@@ -469,8 +497,8 @@ export default function HomeScreen() {
                           {tx.description}
                         </Text>
                         <View style={styles.txMeta}>
-                          <View style={styles.txCategoryPill}>
-                            <Text style={styles.txCategoryText}>{tx.category}</Text>
+                          <View style={[styles.txCategoryPill, { backgroundColor: catColor + '15' }]}>
+                            <Text style={[styles.txCategoryText, { color: catColor }]}>{tx.category}</Text>
                           </View>
                           <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
                         </View>
@@ -494,8 +522,8 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Bottom spacer */}
-          <View style={{ height: 24 }} />
+          {/* Generous bottom spacer so tab bar NEVER hides recent transactions */}
+          <View style={{ height: 110 }} />
         </>
       )}
 
@@ -528,127 +556,117 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E8EDF5',
+    borderBottomColor: '#E2E8F0',
   },
   headerLeft: {
     flex: 1,
   },
   greetingSub: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#64748B',
-    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   greetingMain: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1A1A2E',
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
   },
   profileBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#EBF2FF',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#D0E3FF',
-    shadowColor: '#1565C0',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  bellBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#EBF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: '#C7D2FE',
   },
 
-  // ── Month Selector ───────────────────────────────────────────
+  // ── Month Selector ──────────────────────────────────────────
   monthSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    marginTop: 14,
+    marginBottom: 10,
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#E2EAF4',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    borderColor: '#E2E8F0',
     elevation: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
   chevronBtn: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   monthCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   monthText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginLeft: 5,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   currentBadge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E0F2FE',
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 4,
+    borderRadius: 8,
   },
   currentBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#1565C0',
+    fontWeight: '800',
+    color: '#0284C7',
+    textTransform: 'uppercase',
   },
 
-  // ── Hero Card ────────────────────────────────────────────────
+  // ── Hero Card ───────────────────────────────────────────────
   heroCard: {
     marginHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 4,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
+    marginBottom: 16,
     overflow: 'hidden',
+    position: 'relative',
+    elevation: 6,
     shadowColor: '#1565C0',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
   },
   heroBubble1: {
     position: 'absolute',
     top: -40,
     right: -40,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.07,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   heroBubble2: {
     position: 'absolute',
     bottom: -30,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.05,
+    left: -30,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -662,46 +680,42 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   heroLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#90CAF9',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginLeft: 5,
+    color: '#E0F2FE',
+    letterSpacing: 0.5,
   },
   verifiedBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
   },
   verifiedText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#A5D6A7',
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   heroBalance: {
     fontSize: 34,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.5,
-    marginTop: 4,
-    marginBottom: 2,
+    marginVertical: 4,
   },
   heroSubLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.65)',
-    marginBottom: 16,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#BAE6FD',
+    marginBottom: 18,
   },
   heroStatsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderRadius: 14,
-    padding: 12,
-    gap: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    alignItems: 'center',
   },
   heroStatCard: {
     flex: 1,
@@ -711,38 +725,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   heroStatLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
-    textTransform: 'uppercase',
-    marginLeft: 3,
+    color: '#E0F2FE',
   },
   heroStatValue: {
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    fontWeight: '900',
   },
   heroStatDivider: {
     width: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    marginVertical: 2,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 
-  // ── Generic Section Card ─────────────────────────────────────
+  // ── Sections ────────────────────────────────────────────────
   sectionCard: {
-    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 16,
-    shadowColor: '#1565C0',
-    shadowOpacity: 0.07,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -751,183 +764,148 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1A1A2E',
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   seeAllText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: '#1565C0',
   },
   rowCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
 
-  // ── Quick Actions ────────────────────────────────────────────
+  // ── Quick Actions ───────────────────────────────────────────
   quickActionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   quickActionItem: {
     alignItems: 'center',
-    gap: 8,
     flex: 1,
   },
   quickActionCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    marginBottom: 6,
+    elevation: 1,
   },
   quickActionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#334155',
     textAlign: 'center',
-    lineHeight: 15,
+    lineHeight: 14,
   },
 
-  // ── Budget ───────────────────────────────────────────────────
+  // ── Budget Overview ─────────────────────────────────────────
   budgetAmountRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'baseline',
+    gap: 6,
     marginBottom: 10,
   },
   budgetSpent: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#1A1A2E',
+    color: '#0F172A',
   },
   budgetLimit: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#64748B',
   },
   progressTrack: {
-    width: '100%',
-    height: 8,
-    backgroundColor: '#EEF2F7',
-    borderRadius: 4,
+    height: 10,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 5,
     overflow: 'hidden',
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
   },
   budgetFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'space-between',
   },
   budgetUtilText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-
-  // ── Goals ────────────────────────────────────────────────────
-  goalsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  goalSaved: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#1A1A2E',
-    marginBottom: 2,
-  },
-  goalSavedSub: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  goalTargetBadge: {
-    backgroundColor: '#F3E5F5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  goalTargetText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7B1FA2',
+    color: '#64748B',
   },
 
-  // ── Insights ─────────────────────────────────────────────────
+  // ── Insights ────────────────────────────────────────────────
   insightsSection: {
     marginHorizontal: 16,
-    marginTop: 12,
+    marginBottom: 14,
   },
   insightsSectionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1A1A2E',
-    marginBottom: 10,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
   },
   insightCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 14,
+    alignItems: 'center',
+    padding: 12,
     borderRadius: 14,
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
   },
   insightTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#1A1A2E',
+    color: '#0F172A',
     marginBottom: 2,
   },
   insightMessage: {
     fontSize: 12,
     fontWeight: '500',
     color: '#475569',
-    lineHeight: 17,
+    lineHeight: 16,
   },
 
-  // ── Transactions ─────────────────────────────────────────────
-  txRow: {
+  // ── Recent Transactions Cards ───────────────────────────────
+  txCardsContainer: {
+    gap: 10,
+  },
+  recentTxCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 2,
-  },
-  txRowBorder: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#F0F4FF',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    gap: 12,
   },
   txIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-  },
-  txIconText: {
-    fontSize: 16,
-    fontWeight: '800',
+    borderWidth: 1,
   },
   txMiddle: {
     flex: 1,
-    paddingRight: 8,
+    gap: 4,
   },
   txDesc: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 4,
+    color: '#0F172A',
   },
   txMeta: {
     flexDirection: 'row',
@@ -935,24 +913,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   txCategoryPill: {
-    backgroundColor: '#EBF2FF',
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   txCategoryText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#1565C0',
+    textTransform: 'capitalize',
   },
   txDate: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#94A3B8',
   },
   txAmount: {
     fontSize: 14,
     fontWeight: '800',
-    letterSpacing: -0.2,
   },
 });

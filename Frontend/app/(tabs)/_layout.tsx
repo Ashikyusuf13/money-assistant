@@ -94,21 +94,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="goals"
-        options={{
-          title: 'Goals',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrapper : undefined}>
-              <Target
-                color={color}
-                size={22}
-                strokeWidth={focused ? 2.2 : 1.8}
-              />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="reports"
         options={{
           title: 'Reports',
@@ -121,6 +106,18 @@ export default function TabLayout() {
               />
             </View>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="goals"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="assistant"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

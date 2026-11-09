@@ -62,6 +62,7 @@ export interface DashboardResponse {
     income: number;
     expense: number;
     netCashFlow: number;
+    currentBalance?: number;
   };
   budgets: {
     totalBudget: number;
@@ -234,7 +235,7 @@ export async function getDashboardSummary(
   }
   categoryBreakdown.sort((a, b) => b.spentPaise - a.spentPaise);
 
-  // 5. Salary Status
+  // 5. Salary Status & Monthly Balance
   const salaryProfile = await Salary.findOne({ userId: userObjectId });
   const salaryReceivedThisMonth = currentMonthTransactions
     .filter((tx) => tx.type === 'income' && tx.category === 'salary')
@@ -246,9 +247,13 @@ export async function getDashboardSummary(
       ? Math.max(0, baseMonthlySalary - salaryReceivedThisMonth)
       : 0;
 
-  const effectiveSalaryForBalance = baseMonthlySalary ?? salaryReceivedThisMonth;
-  const remainingSalaryAfterExpenses =
-    effectiveSalaryForBalance - cashFlow.netOperatingExpense;
+  // Total month income considers base salary from profile + any other income recorded
+  const totalMonthIncome = baseMonthlySalary && baseMonthlySalary > 0
+    ? Math.max(baseMonthlySalary, cashFlow.totalIncome)
+    : cashFlow.totalIncome;
+
+  // Current balance for the selected month: total month income minus expenses incurred
+  const remainingSalaryAfterExpenses = totalMonthIncome - cashFlow.netOperatingExpense;
 
   // 6. Budgets Highlights
   const monthlyBudgets = await Budget.find({
@@ -298,13 +303,14 @@ export async function getDashboardSummary(
     targetDate: g.targetDate,
   }));
 
-  // 8. Recent Transactions
+  // 8. Recent Transactions for the Selected Month (Latest 4)
   const recentTransactions = await Transaction.find({
     userId: userObjectId,
     isArchived: false,
+    date: { $gte: currentBounds.start, $lte: currentBounds.end },
   })
     .sort({ date: -1 })
-    .limit(5);
+    .limit(4);
 
   const totalBudgetPaise = budgetHighlights.reduce((sum, b) => sum + b.budgetAmount, 0);
   const totalSpentPaise = budgetHighlights.reduce((sum, b) => sum + b.spentPaise, 0);
@@ -352,7 +358,7 @@ export async function getDashboardSummary(
   return {
     month,
     totalTrackedWealthPaise,
-    netWealth: totalTrackedWealthPaise,
+    netWealth: remainingSalaryAfterExpenses,
     accounts: accounts.map((acc: IAccountDocument) => ({
       id: acc._id.toString(),
       name: acc.name,
@@ -362,9 +368,10 @@ export async function getDashboardSummary(
     })),
     cashFlow,
     monthlySummary: {
-      income: cashFlow.totalIncome,
+      income: totalMonthIncome,
       expense: cashFlow.netOperatingExpense,
-      netCashFlow: cashFlow.netCashFlow,
+      netCashFlow: totalMonthIncome - cashFlow.netOperatingExpense,
+      currentBalance: remainingSalaryAfterExpenses,
     },
     budgets: {
       totalBudget: totalBudgetPaise,

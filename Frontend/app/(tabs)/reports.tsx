@@ -19,7 +19,6 @@ import {
 import { useDashboard } from '@/src/hooks/useDashboard';
 import { useSalary } from '@/src/hooks/useSalary';
 import { useBudgets } from '@/src/hooks/useBudgets';
-import { useGoals } from '@/src/hooks/useGoals';
 import { useAuthStore } from '@/src/store/authStore';
 import { formatPaise } from '@/src/utils/currency';
 import { getCurrentMonthStr, formatMonthYear, formatDate } from '@/src/utils/date';
@@ -36,7 +35,6 @@ import {
   CheckCircle2,
   Sparkles,
   ArrowRight,
-  Target,
   Wallet,
 } from 'lucide-react-native';
 
@@ -91,7 +89,6 @@ export default function ReportsScreen() {
   const { data: dashboard, refetch: refetchDashboard } = useDashboard(selectedMonth);
   const { data: salary, refetch: refetchSalary } = useSalary();
   const { data: budgets, refetch: refetchBudgets } = useBudgets(selectedMonth);
-  const { data: goals, refetch: refetchGoals } = useGoals();
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -102,7 +99,6 @@ export default function ReportsScreen() {
       refetchDashboard(),
       refetchSalary(),
       refetchBudgets(),
-      refetchGoals(),
     ]);
     setIsRefreshing(false);
   };
@@ -116,13 +112,14 @@ export default function ReportsScreen() {
     ? (periodData?.totalExpense ?? dashboard?.monthlySummary?.expense ?? 0)
     : (dashboard?.monthlySummary?.expense ?? 0);
 
-  const netCashFlow = totalIncome - totalExpense;
-  const savingsRate = totalIncome > 0
-    ? Math.max(0, Math.round(((totalIncome - totalExpense) / totalIncome) * 100))
-    : 0;
-
   const currentSalary = salary?.baseMonthlySalary ?? 0;
-  const remainingMonthlySalary = Math.max(0, currentSalary - totalExpense);
+  // Starting base inflow begins with Main Wallet Salary if configured in profile
+  const startingInflow = currentSalary > 0 ? currentSalary : totalIncome;
+  const netCashFlow = startingInflow - totalExpense;
+  const savingsRate = startingInflow > 0
+    ? Math.max(0, Math.round(((startingInflow - totalExpense) / startingInflow) * 100))
+    : 0;
+  const remainingMonthlySalary = Math.max(0, startingInflow - totalExpense);
 
   // Quick Preset Presets for Custom Date Range
   const handleApplyPreset = (preset: 'today' | '7days' | 'this_month' | 'last_month' | 'this_year') => {
@@ -169,12 +166,12 @@ export default function ReportsScreen() {
           timeStyle: 'short',
         }),
         trackedWealthRupees: (dashboard?.netWealth ?? 0) / 100,
-        monthlyIncomeRupees: totalIncome / 100,
+        monthlyIncomeRupees: startingInflow / 100,
         monthlyExpenseRupees: totalExpense / 100,
         netCashFlowRupees: netCashFlow / 100,
         salary: currentSalary > 0 ? {
           baseSalaryRupees: currentSalary / 100,
-          salaryReceivedRupees: totalIncome / 100,
+          salaryReceivedRupees: startingInflow / 100,
           remainingSalaryRupees: remainingMonthlySalary / 100,
           retentionPercentage: savingsRate,
         } : undefined,
@@ -191,13 +188,6 @@ export default function ReportsScreen() {
           remainingRupees: Math.max(0, b.amount - b.spent) / 100,
           utilizationPercentage: b.utilizationPercentage,
           isExceeded: b.utilizationPercentage > 100,
-        })),
-        goals: (goals ?? []).map((g) => ({
-          name: g.name,
-          targetRupees: g.targetAmount / 100,
-          savedRupees: g.currentAmount / 100,
-          remainingRupees: Math.max(0, g.targetAmount - g.currentAmount) / 100,
-          progressPercentage: g.progressPercentage ?? 0,
         })),
         insights: (Array.isArray(insightsData) ? insightsData : (dashboard?.insights ?? [])).map((i: any) => ({
           title: i.title,
@@ -368,11 +358,11 @@ export default function ReportsScreen() {
             <Text style={styles.heroTagText}>{activePeriodTitle}</Text>
           </View>
           <View style={styles.rateBadge}>
-            <Text style={styles.rateBadgeText}>{savingsRate}% Saved</Text>
+            <Text style={styles.rateBadgeText}>{savingsRate}% Retained</Text>
           </View>
         </View>
 
-        <Text style={styles.heroLabel}>Net Cash Flow</Text>
+        <Text style={styles.heroLabel}>Net Cash Flow (Main Wallet Balance)</Text>
         <Text style={styles.heroNetValue}>
           {netCashFlow >= 0 ? '+' : ''}{formatPaise(netCashFlow)}
         </Text>
@@ -382,10 +372,12 @@ export default function ReportsScreen() {
           <View style={styles.splitItem}>
             <View style={styles.splitIconRow}>
               <TrendingUp size={14} color="#A5D6A7" />
-              <Text style={styles.splitLabel}>Total Inflow</Text>
+              <Text style={styles.splitLabel}>
+                {currentSalary > 0 ? 'Main Wallet Salary' : 'Total Inflow'}
+              </Text>
             </View>
             <Text style={[styles.splitValue, { color: '#A5D6A7' }]}>
-              {formatPaise(totalIncome)}
+              {formatPaise(startingInflow)}
             </Text>
           </View>
 
@@ -395,7 +387,7 @@ export default function ReportsScreen() {
           <View style={styles.splitItem}>
             <View style={styles.splitIconRow}>
               <TrendingDown size={14} color="#FFCDD2" />
-              <Text style={styles.splitLabel}>Total Outflow</Text>
+              <Text style={styles.splitLabel}>Total Expenses</Text>
             </View>
             <Text style={[styles.splitValue, { color: '#FFCDD2' }]}>
               {formatPaise(totalExpense)}
@@ -411,7 +403,7 @@ export default function ReportsScreen() {
             <View style={styles.rowCenter}>
               <Wallet size={16} color="#1565C0" />
               <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>
-                Salary &amp; Monthly Surplus
+                Main Wallet Salary &amp; Surplus
               </Text>
             </View>
             <Text style={styles.badgeSuccess}>Configured</Text>
@@ -432,17 +424,15 @@ export default function ReportsScreen() {
 
           <View style={styles.surplusBanner}>
             <View>
-              <Text style={styles.surplusBannerLabel}>Available Savings Balance</Text>
+              <Text style={styles.surplusBannerLabel}>Remaining Unspent Balance</Text>
               <Text style={styles.surplusBannerValue}>
                 {formatPaise(remainingMonthlySalary)}
               </Text>
             </View>
-            <Pressable
-              onPress={() => router.push('/(tabs)/goals')}
-              style={styles.allocateBtn}
-            >
-              <Text style={styles.allocateBtnText}>Send to Goal →</Text>
-            </Pressable>
+            <View style={styles.retainedBadge}>
+              <CheckCircle2 size={14} color="#059669" />
+              <Text style={styles.retainedText}>Retained in Wallet</Text>
+            </View>
           </View>
         </View>
       )}
@@ -503,55 +493,12 @@ export default function ReportsScreen() {
         )}
       </View>
 
-      {/* ── Active Savings Goals Progress ── */}
-      {goals && goals.length > 0 && (
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.rowCenter}>
-              <Target size={16} color="#7C3AED" />
-              <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>
-                Savings Goals Milestone
-              </Text>
-            </View>
-            <Pressable onPress={() => router.push('/(tabs)/goals')}>
-              <Text style={[styles.sectionSubText, { color: '#7C3AED', fontWeight: '700' }]}>
-                View All →
-              </Text>
-            </Pressable>
-          </View>
-
-          <View style={{ gap: 10 }}>
-            {goals.slice(0, 3).map((g) => {
-              const pct = g.progressPercentage ?? 0;
-              return (
-                <View key={g.id || g._id} style={styles.goalItem}>
-                  <View style={styles.goalTopRow}>
-                    <Text style={styles.goalName}>{g.name}</Text>
-                    <Text style={styles.goalValues}>
-                      {formatPaise(g.currentAmount)} / {formatPaise(g.targetAmount)}
-                    </Text>
-                  </View>
-                  <View style={styles.goalTrack}>
-                    <View
-                      style={[
-                        styles.goalFill,
-                        { width: `${Math.min(pct, 100)}%` },
-                      ]}
-                    />
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-      )}
-
       {/* ── Bottom Download PDF Banner ── */}
       <View style={styles.pdfBanner}>
         <View style={{ flex: 1 }}>
           <Text style={styles.pdfBannerTitle}>Official Financial Statement</Text>
           <Text style={styles.pdfBannerSub}>
-            Generates certified audit summary with salary retention, goals, and category charts.
+            Generates certified audit summary with salary retention, monthly cash flow, and category charts.
           </Text>
         </View>
 
@@ -900,16 +847,21 @@ const styles = StyleSheet.create({
     color: '#1565C0',
     marginTop: 2,
   },
-  allocateBtn: {
-    backgroundColor: '#1565C0',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+  retainedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
-  allocateBtnText: {
+  retainedText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#059669',
   },
   categoryHeader: {
     flexDirection: 'row',

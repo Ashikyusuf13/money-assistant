@@ -655,14 +655,15 @@ const styles = StyleSheet.create({
   // Submit
   submitBtn: {
     marginHorizontal: 16,
-    marginTop: 4,
-    borderRadius: 14,
+    marginTop: 12,
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowColor: '#1565C0',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     elevation: 6,
   },
   submitBtnPressed: {
@@ -674,8 +675,9 @@ const styles = StyleSheet.create({
   },
   submitBtnLabel: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
 });

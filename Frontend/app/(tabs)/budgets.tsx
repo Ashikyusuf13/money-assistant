@@ -26,6 +26,7 @@ import {
   useUpdateBudget,
   useDeleteBudget,
 } from '@/src/hooks/useBudgets';
+import { useSalary } from '@/src/hooks/useSalary';
 import { formatPaise } from '@/src/utils/currency';
 import { formatMonthYear, getCurrentMonthStr } from '@/src/utils/date';
 import { Budget } from '@/src/types/api';
@@ -39,24 +40,62 @@ import {
   X,
   PieChart,
   Calendar,
+  Wallet,
+  Utensils,
+  ShoppingCart,
+  Car,
+  ShoppingBag,
+  Zap,
+  Heart,
+  Film,
+  Briefcase,
+  BookOpen,
+  Package,
 } from 'lucide-react-native';
 
 // ─── Category icon helpers ─────────────────────────────────────────────────────
-const CATEGORY_META: Record<string, { emoji: string; color: string; bg: string }> = {
-  groceries:     { emoji: '🛒', color: '#1565C0', bg: '#E8EEF9' },
-  food:          { emoji: '🍔', color: '#E65100', bg: '#FFF3E0' },
-  transport:     { emoji: '🚌', color: '#00695C', bg: '#E0F2F1' },
-  shopping:      { emoji: '🛍️', color: '#6A1B9A', bg: '#F3E5F5' },
-  entertainment: { emoji: '🎬', color: '#AD1457', bg: '#FCE4EC' },
-  health:        { emoji: '💊', color: '#2E7D32', bg: '#E8F5E9' },
-  utilities:     { emoji: '💡', color: '#F57F17', bg: '#FFFDE7' },
-  education:     { emoji: '📚', color: '#1565C0', bg: '#E3F2FD' },
-  travel:        { emoji: '✈️', color: '#0277BD', bg: '#E1F5FE' },
-  other:         { emoji: '📦', color: '#546E7A', bg: '#ECEFF1' },
+const CATEGORY_META: Record<string, { color: string; bg: string }> = {
+  groceries:     { color: '#EA580C', bg: '#FFEDD5' },
+  food:          { color: '#D97706', bg: '#FEF3C7' },
+  transport:     { color: '#0284C7', bg: '#E0F2FE' },
+  shopping:      { color: '#DB2777', bg: '#FCE7F3' },
+  entertainment: { color: '#9333EA', bg: '#F3E8FF' },
+  health:        { color: '#DC2626', bg: '#FEE2E2' },
+  utilities:     { color: '#CA8A04', bg: '#FEF9C3' },
+  education:     { color: '#1565C0', bg: '#DBEAFE' },
+  travel:        { color: '#0D9488', bg: '#CCFBF1' },
+  other:         { color: '#64748B', bg: '#F1F5F9' },
 };
 
 function getCategoryMeta(cat: string) {
-  return CATEGORY_META[cat.toLowerCase()] ?? { emoji: '📦', color: '#546E7A', bg: '#ECEFF1' };
+  return CATEGORY_META[cat.toLowerCase()] ?? { color: '#64748B', bg: '#F1F5F9' };
+}
+
+function renderBudgetCategoryIcon(category: string, color: string, size = 20) {
+  const cat = (category || '').toLowerCase();
+  switch (cat) {
+    case 'food':
+      return <Utensils size={size} color={color} strokeWidth={2.2} />;
+    case 'groceries':
+      return <ShoppingCart size={size} color={color} strokeWidth={2.2} />;
+    case 'transport':
+      return <Car size={size} color={color} strokeWidth={2.2} />;
+    case 'shopping':
+      return <ShoppingBag size={size} color={color} strokeWidth={2.2} />;
+    case 'bills':
+    case 'utilities':
+      return <Zap size={size} color={color} strokeWidth={2.2} />;
+    case 'health':
+      return <Heart size={size} color={color} strokeWidth={2.2} />;
+    case 'entertainment':
+      return <Film size={size} color={color} strokeWidth={2.2} />;
+    case 'education':
+      return <BookOpen size={size} color={color} strokeWidth={2.2} />;
+    case 'travel':
+      return <Car size={size} color={color} strokeWidth={2.2} />;
+    default:
+      return <Package size={size} color={color} strokeWidth={2.2} />;
+  }
 }
 
 // ─── Circular progress indicator ──────────────────────────────────────────────
@@ -89,7 +128,6 @@ function DonutProgress({
           borderColor: trackColor,
         }}
       />
-      {/* fill approximation using a rotated overlay — simple approach */}
       <View
         style={{
           position: 'absolute',
@@ -117,6 +155,7 @@ export default function BudgetsScreen() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr());
   const { data: budgets, isLoading, isRefetching, refetch } = useBudgets(selectedMonth);
   const { data: alerts } = useBudgetAlerts();
+  const { data: salary, refetch: refetchSalary } = useSalary();
 
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
@@ -212,11 +251,16 @@ export default function BudgetsScreen() {
     ? (budgets as any).budgets
     : [];
 
-  // Summaries
+  // Salary Pool & Budget Deduction Summaries
+  const baseSalary = salary?.baseMonthlySalary ?? 0;
   const totalBudget = budgetList.reduce((acc, b) => acc + (b.amount || 0), 0);
   const totalSpent = budgetList.reduce((acc, b) => acc + (b.spent || 0), 0);
-  const totalRemaining = Math.max(0, totalBudget - totalSpent);
-  const overallPct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+  
+  // Total pool starts with Main Wallet Salary (fallback to totalBudget if no salary set)
+  const salaryPool = baseSalary > 0 ? baseSalary : totalBudget;
+  // Remaining salary unspent after all category expenses
+  const remainingSalary = Math.max(0, salaryPool - totalSpent);
+  const overallPct = salaryPool > 0 ? Math.round((totalSpent / salaryPool) * 100) : 0;
 
   return (
     <ScreenWrapper
@@ -225,7 +269,10 @@ export default function BudgetsScreen() {
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
-          onRefresh={() => void refetch()}
+          onRefresh={() => {
+            void refetch();
+            void refetchSalary();
+          }}
           tintColor="#1565C0"
           colors={['#1565C0']}
         />
@@ -234,7 +281,7 @@ export default function BudgetsScreen() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerEyebrow}>Category Limits</Text>
+          <Text style={styles.headerEyebrow}>Category Spending Limits</Text>
           <Text style={styles.headerTitle}>Budgets</Text>
         </View>
       </View>
@@ -257,7 +304,7 @@ export default function BudgetsScreen() {
 
       {/* ── Threshold Alerts ───────────────────────────────────────────────── */}
       {alerts && alerts.length > 0 && (
-        <View style={{ marginBottom: 14, gap: 8 }}>
+        <View style={{ marginBottom: 14, gap: 8, width: '100%' }}>
           {alerts.map((alt, idx) => (
             <View
               key={idx}
@@ -290,17 +337,28 @@ export default function BudgetsScreen() {
         </View>
       )}
 
-      {/* ── Summary Card (Blue Gradient) ───────────────────────────────────── */}
+      {/* ── Summary Card (Main Wallet Salary Deduction Pool) ───────────────────────────────────── */}
       <View style={styles.summaryCard}>
         {/* Top row */}
         <View style={styles.summaryTopRow}>
-          <View>
-            <Text style={styles.summaryEyebrow}>Monthly Budget</Text>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Wallet size={14} color="#90CAF9" />
+              <Text style={styles.summaryEyebrow}>
+                {baseSalary > 0 ? 'Salary Pool Deduction' : 'Monthly Category Budget'}
+              </Text>
+            </View>
             <Text style={styles.summarySpent}>
               {formatPaise(totalSpent)}
-              <Text style={styles.summaryOf}>  / {formatPaise(totalBudget)}</Text>
+              <Text style={styles.summaryOf}> / {formatPaise(salaryPool)}</Text>
+            </Text>
+            <Text style={styles.salaryPoolSub}>
+              {baseSalary > 0
+                ? `Main Wallet Salary Pool: ${formatPaise(baseSalary)}`
+                : `Total Budget Limits: ${formatPaise(totalBudget)}`}
             </Text>
           </View>
+
           {/* Circular donut */}
           <View style={styles.donutWrap}>
             <Text style={styles.donutPct}>{overallPct}%</Text>
@@ -321,12 +379,15 @@ export default function BudgetsScreen() {
           />
         </View>
 
-        {/* Category Budgets label + remaining */}
+        {/* Footer: Allocated to categories vs remaining unspent */}
         <View style={styles.summaryFooter}>
-          <Text style={styles.summaryFooterLabel}>Category Budgets</Text>
+          <View>
+            <Text style={styles.summaryFooterLabel}>Allocated to Categories</Text>
+            <Text style={styles.allocatedSub}>{formatPaise(totalBudget)}</Text>
+          </View>
           <View style={styles.summaryRemainingPill}>
             <Text style={styles.summaryRemainingText}>
-              Remaining: {formatPaise(totalRemaining)}
+              Remaining Salary: {formatPaise(remainingSalary)}
             </Text>
           </View>
         </View>
@@ -338,19 +399,19 @@ export default function BudgetsScreen() {
           <SkeletonList count={4} />
         </View>
       ) : budgetList.length > 0 ? (
-        <View style={{ gap: 12, marginBottom: 90 }}>
+        <View style={{ gap: 12, width: '100%' }}>
           {budgetList.map((b) => {
             const isExceeded = b.utilizationPercentage > 100;
             const isWarning = b.utilizationPercentage >= b.alertThreshold;
             const meta = getCategoryMeta(b.category);
             const pct = Math.min(b.utilizationPercentage, 100);
-            const fillColor = isExceeded ? '#F44336' : '#1565C0';
+            const fillColor = isExceeded ? '#DC2626' : '#1565C0';
 
             return (
               <View key={b._id || b.id} style={styles.catCard}>
-                {/* Left: icon circle */}
+                {/* Left: icon circle with Lucide category icon */}
                 <View style={[styles.catIconCircle, { backgroundColor: meta.bg }]}>
-                  <Text style={{ fontSize: 20 }}>{meta.emoji}</Text>
+                  {renderBudgetCategoryIcon(b.category, meta.color, 20)}
                 </View>
 
                 {/* Middle: details */}
@@ -402,7 +463,7 @@ export default function BudgetsScreen() {
                       <Text
                         style={{
                           fontWeight: '700',
-                          color: isExceeded ? '#F44336' : '#2E7D32',
+                          color: isExceeded ? '#DC2626' : '#16A34A',
                         }}
                       >
                         {formatPaise(Math.abs(b.remaining))}
@@ -425,12 +486,15 @@ export default function BudgetsScreen() {
                     style={styles.catActionBtn}
                     hitSlop={8}
                   >
-                    <Trash2 size={15} color="#90A4AE" />
+                    <Trash2 size={15} color="#94A3B8" />
                   </Pressable>
                 </View>
               </View>
             );
           })}
+
+          {/* Generous bottom spacing so cards are 100% visible above floating navigation */}
+          <View style={{ height: 110 }} />
         </View>
       ) : (
         <View style={[styles.catCard, { paddingVertical: 32 }]}>
@@ -540,6 +604,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F4FF',
     paddingHorizontal: 16,
     paddingTop: 8,
+    width: '100%',
   },
 
   // Header
@@ -548,6 +613,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
+    width: '100%',
   },
   headerEyebrow: {
     fontSize: 11,
@@ -572,6 +638,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     marginBottom: 16,
+    width: '100%',
     elevation: 2,
     shadowColor: '#1565C0',
     shadowOpacity: 0.08,
@@ -596,6 +663,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
+    width: '100%',
   },
   alertTitle: {
     fontSize: 12,
@@ -613,6 +681,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
+    width: '100%',
     elevation: 4,
     shadowColor: '#1565C0',
     shadowOpacity: 0.35,
@@ -623,20 +692,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   summaryEyebrow: {
     fontSize: 11,
     fontWeight: '700',
     color: '#90CAF9',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginBottom: 4,
   },
   summarySpent: {
     fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  salaryPoolSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#BAE6FD',
+    marginTop: 3,
+  },
+  allocatedSub: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 2,
   },
   summaryOf: {
     fontSize: 14,
@@ -686,7 +766,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.15)',
   },
   summaryFooterLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#90CAF9',
     textTransform: 'uppercase',
@@ -714,6 +794,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    width: '100%',
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.06,
@@ -761,10 +842,10 @@ const styles = StyleSheet.create({
   catTrack: {
     width: '100%',
     height: 6,
-    backgroundColor: '#E0E0E0',
     borderRadius: 3,
+    backgroundColor: '#F1F5F9',
     overflow: 'hidden',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   catFill: {
     height: '100%',
@@ -776,88 +857,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   catPct: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
   },
   catRemLabel: {
     fontSize: 11,
-    color: '#78909C',
-    fontWeight: '500',
+    color: '#546E7A',
   },
   catActionsRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
+    gap: 10,
     alignItems: 'center',
-    gap: 6,
-    marginLeft: 8,
   },
   catActionBtn: {
-    padding: 7,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    padding: 6,
+  },
+
+  skeletonContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    width: '100%',
   },
 
   // FAB
   fab: {
     position: 'absolute',
-    bottom: 24,
     right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    bottom: 96,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#1565C0',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,
     shadowColor: '#1565C0',
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-  },
-
-  skeletonContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 90,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
 
   // Centered Modal
   centeredModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    padding: 20,
   },
   centeredModalCard: {
-    width: '100%',
-    maxWidth: 420,
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '85%',
     overflow: 'hidden',
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
-    shadowRadius: 28,
-    elevation: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    shadowRadius: 16,
   },
   modalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 14,
   },
   modalEyebrow: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     color: '#1565C0',
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     textTransform: 'uppercase',
-    marginBottom: 2,
   },
   modalTitle: {
     fontSize: 20,
@@ -865,25 +938,21 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
   },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
+    padding: 6,
     borderRadius: 16,
-    backgroundColor: '#F0F4FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
   },
   errorBox: {
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FEE2E2',
     borderWidth: 1,
-    borderColor: '#FECDD3',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 16,
+    borderColor: '#FCA5A5',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
   },
   errorText: {
+    color: '#B91C1C',
     fontSize: 12,
     fontWeight: '600',
-    color: '#BE123C',
   },
-});
+});

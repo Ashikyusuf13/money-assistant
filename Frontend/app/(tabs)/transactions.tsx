@@ -17,7 +17,26 @@ import { useTransactions } from '@/src/hooks/useTransactions';
 import { TransactionType } from '@/src/types/api';
 import { formatTransactionAmount } from '@/src/utils/currency';
 import { formatDate } from '@/src/utils/date';
-import { Plus, ArrowLeftRight, ChevronRight, TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight } from 'lucide-react-native';
+import {
+  Plus,
+  ArrowLeftRight,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Utensils,
+  ShoppingCart,
+  Car,
+  ShoppingBag,
+  Zap,
+  Heart,
+  Film,
+  Briefcase,
+  CircleDollarSign,
+  RotateCcw,
+  Package,
+} from 'lucide-react-native';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Transaction {
@@ -40,33 +59,18 @@ const TYPE_FILTERS: Array<{ label: string; value: TransactionType | 'all' }> = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  food: '#F59E0B',
-  groceries: '#F97316',
+  food: '#D97706',
+  groceries: '#EA580C',
   transport: '#0284C7',
-  shopping: '#EC4899',
-  bills: '#EAB308',
-  health: '#EF4444',
-  entertainment: '#A855F7',
-  salary: '#10B981',
-  income: '#10B981',
-  transfer: '#6366F1',
-  refund: '#06B6D4',
+  shopping: '#DB2777',
+  bills: '#CA8A04',
+  health: '#DC2626',
+  entertainment: '#9333EA',
+  salary: '#059669',
+  income: '#059669',
+  transfer: '#4F46E5',
+  refund: '#0891B2',
   others: '#64748B',
-};
-
-const CATEGORY_ICONS: Record<string, string> = {
-  food: '🍔',
-  groceries: '🛒',
-  transport: '🚗',
-  shopping: '🛍️',
-  bills: '⚡',
-  health: '❤️',
-  entertainment: '🎬',
-  salary: '💰',
-  income: '💵',
-  transfer: '🔄',
-  refund: '↩️',
-  others: '📦',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -74,8 +78,35 @@ function getCategoryColor(category: string): string {
   return CATEGORY_COLORS[category.toLowerCase()] ?? '#64748B';
 }
 
-function getCategoryIcon(category: string): string {
-  return CATEGORY_ICONS[category.toLowerCase()] ?? '📦';
+function renderCategoryIcon(category: string, color: string, size = 20) {
+  const cat = (category || '').toLowerCase();
+  switch (cat) {
+    case 'food':
+      return <Utensils size={size} color={color} strokeWidth={2.2} />;
+    case 'groceries':
+      return <ShoppingCart size={size} color={color} strokeWidth={2.2} />;
+    case 'transport':
+      return <Car size={size} color={color} strokeWidth={2.2} />;
+    case 'shopping':
+      return <ShoppingBag size={size} color={color} strokeWidth={2.2} />;
+    case 'bills':
+    case 'utilities':
+      return <Zap size={size} color={color} strokeWidth={2.2} />;
+    case 'health':
+      return <Heart size={size} color={color} strokeWidth={2.2} />;
+    case 'entertainment':
+      return <Film size={size} color={color} strokeWidth={2.2} />;
+    case 'salary':
+      return <Briefcase size={size} color={color} strokeWidth={2.2} />;
+    case 'income':
+      return <CircleDollarSign size={size} color={color} strokeWidth={2.2} />;
+    case 'transfer':
+      return <ArrowLeftRight size={size} color={color} strokeWidth={2.2} />;
+    case 'refund':
+      return <RotateCcw size={size} color={color} strokeWidth={2.2} />;
+    default:
+      return <Package size={size} color={color} strokeWidth={2.2} />;
+  }
 }
 
 /** Group transactions by their date string (YYYY-MM-DD) */
@@ -178,7 +209,6 @@ export default function TransactionsScreen() {
                   const isPositive = tx.type === 'income' || tx.type === 'refund';
                   const amountColor = isPositive ? '#16A34A' : '#DC2626';
                   const catColor = getCategoryColor(tx.category);
-                  const catIcon = getCategoryIcon(tx.category);
 
                   return (
                     <Pressable
@@ -190,9 +220,9 @@ export default function TransactionsScreen() {
                         pressed && styles.txRowPressed,
                       ]}
                     >
-                      {/* Premium Category Icon */}
-                      <View style={[styles.iconBubble, { backgroundColor: catColor + '18', borderColor: catColor + '30' }]}>
-                        <Text style={styles.iconEmoji}>{catIcon}</Text>
+                      {/* Category Icon */}
+                      <View style={[styles.iconBubble, { backgroundColor: catColor + '15', borderColor: catColor + '35' }]}>
+                        {renderCategoryIcon(tx.category, catColor, 20)}
                         <View style={[styles.typeBadgeIndicator, { backgroundColor: isPositive ? '#16A34A' : '#EF4444' }]}>
                           {isPositive ? (
                             <ArrowDownLeft size={8} color="#FFFFFF" strokeWidth={3} />
@@ -208,7 +238,7 @@ export default function TransactionsScreen() {
                           {tx.description}
                         </Text>
                         <View style={styles.txMeta}>
-                          <View style={[styles.categoryBadge, { backgroundColor: catColor + '14' }]}>
+                          <View style={[styles.categoryBadge, { backgroundColor: catColor + '15' }]}>
                             <Text style={[styles.categoryBadgeText, { color: catColor }]}>
                               {tx.category}
                             </Text>
@@ -230,7 +260,8 @@ export default function TransactionsScreen() {
               </View>
             </View>
           ))}
-          <View style={{ height: 28 }} />
+          {/* Bottom spacing to ensure transactions are never hidden behind navigation */}
+          <View style={{ height: 110 }} />
         </View>
       ) : (
         <View style={styles.emptyCard}>
@@ -253,6 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     paddingHorizontal: 16,
     paddingTop: 8,
+    width: '100%',
   },
   skeletonContainer: {
     backgroundColor: '#FFFFFF',
@@ -271,6 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
     marginTop: 4,
+    width: '100%',
   },
   headerEyebrow: {
     fontSize: 11,
@@ -311,6 +344,7 @@ const styles = StyleSheet.create({
   // Filter pills
   pillScroll: {
     marginBottom: 16,
+    width: '100%',
   },
   pillRow: {
     gap: 8,
@@ -343,9 +377,11 @@ const styles = StyleSheet.create({
   },
   // List
   listContainer: {
+    width: '100%',
     gap: 6,
   },
   section: {
+    width: '100%',
     marginBottom: 16,
   },
   sectionHeaderRow: {
@@ -377,7 +413,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    width: '100%',
   },
   txRow: {
     flexDirection: 'row',
@@ -413,9 +450,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
-  },
-  iconEmoji: {
-    fontSize: 20,
   },
   txInfo: {
     flex: 1,
@@ -473,6 +507,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    width: '100%',
   },
 });

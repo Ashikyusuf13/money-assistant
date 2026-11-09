@@ -33,7 +33,7 @@ export interface PDFReportData {
     utilizationPercentage: number;
     isExceeded: boolean;
   }>;
-  goals: Array<{
+  goals?: Array<{
     name: string;
     targetRupees: number;
     savedRupees: number;
@@ -85,7 +85,7 @@ export function generateFinancialReportHTML(data: PDFReportData): string {
       : `<tr><td colspan="5" style="padding: 14px; text-align: center; color: #94a3b8;">No budgets configured</td></tr>`;
 
   const goalsRows =
-    data.goals.length > 0
+    data.goals && data.goals.length > 0
       ? data.goals
           .map(
             (g) => `
