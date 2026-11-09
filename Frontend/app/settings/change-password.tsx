@@ -78,14 +78,14 @@ export default function ChangePasswordScreen() {
         </Card>
       ) : (
         <View className="gap-4">
-          {errorMessage && (
+          {errorMessage ? (
             <Card className="bg-rose-50 border-rose-200 p-3.5 flex-row items-center gap-2">
               <AlertCircle size={18} color="#e11d48" />
               <Text className="text-xs font-medium text-rose-700 flex-1">
                 {errorMessage}
               </Text>
             </Card>
-          )}
+          ) : null}
 
           <Input
             label="Current Password"

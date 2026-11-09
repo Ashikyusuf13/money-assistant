@@ -30,11 +30,11 @@ export function CategoryPicker({
 }: CategoryPickerProps) {
   return (
     <View className={`w-full ${containerClassName}`}>
-      {label && (
+      {label ? (
         <Text className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
           {label}
         </Text>
-      )}
+      ) : null}
 
       <ScrollView
         horizontal

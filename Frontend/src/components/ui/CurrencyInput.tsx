@@ -94,14 +94,14 @@ export function CurrencyInput({
 
   return (
     <View className={`w-full ${containerClassName}`}>
-      {label && (
+      {label ? (
         <Text
           className="text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider"
           style={{ color: '#0f172a' }}
         >
           {label}
         </Text>
-      )}
+      ) : null}
 
       <Pressable
         onPress={handleContainerPress}
@@ -149,13 +149,13 @@ export function CurrencyInput({
               : undefined,
           ]}
         />
-        {compactLabel && !isFocused && (
+        {compactLabel && !isFocused ? (
           <View className="ml-2 bg-primary-100 px-2 py-0.5 rounded-lg border border-primary-200">
             <Text className="text-xs font-bold text-primary-800">
               {compactLabel}
             </Text>
           </View>
-        )}
+        ) : null}
       </Pressable>
 
       {error ? (

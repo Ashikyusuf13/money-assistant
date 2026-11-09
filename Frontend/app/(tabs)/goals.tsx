@@ -502,11 +502,11 @@ export default function GoalsScreen() {
                 </Pressable>
               </View>
 
-              {errorMsg && (
+              {errorMsg ? (
                 <View className="bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5 mb-4 flex-row gap-2">
                   <Text className="text-xs font-bold text-rose-700">{errorMsg}</Text>
                 </View>
-              )}
+              ) : null}
 
               {/* Goal Name */}
               <Input
@@ -656,9 +656,9 @@ export default function GoalsScreen() {
               </View>
             )}
 
-            {contribError && (
+            {contribError ? (
               <Text className="text-xs font-bold text-rose-700 mb-3">{contribError}</Text>
-            )}
+            ) : null}
 
             {/* Type toggle */}
             <View className="flex-row bg-slate-100 p-1 rounded-2xl mb-4 gap-1 border border-slate-200">

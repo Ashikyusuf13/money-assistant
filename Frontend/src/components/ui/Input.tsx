@@ -34,14 +34,14 @@ export function Input({
 
   return (
     <View className={`w-full ${containerClassName}`}>
-      {label && (
+      {label ? (
         <Text
           className="text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider"
           style={{ color: '#0f172a' }}
         >
           {label}
         </Text>
-      )}
+      ) : null}
 
       <Pressable
         onPress={handleContainerPress}

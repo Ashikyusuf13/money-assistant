@@ -456,11 +456,11 @@ export default function BudgetsScreen() {
                 </Pressable>
               </View>
 
-              {errorMsg && (
+              {errorMsg ? (
                 <View style={styles.errorBox}>
                   <Text style={styles.errorText}>{errorMsg}</Text>
                 </View>
-              )}
+              ) : null}
 
               <CategoryPicker
                 selectedCategory={category}

@@ -160,12 +160,12 @@ export default function AddTransactionScreen() {
       </View>
 
       {/* ── Error Banner ── */}
-      {errorMsg && (
+      {errorMsg ? (
         <View style={styles.errorBanner}>
           <AlertCircle size={16} color="#C62828" />
           <Text style={styles.errorText}>{errorMsg}</Text>
         </View>
-      )}
+      ) : null}
 
       {/* ── Main Form Card ── */}
       <View style={styles.formCard}>
@@ -188,6 +188,7 @@ export default function AddTransactionScreen() {
           <>
             <Text style={styles.fieldLabel}>Category</Text>
             <CategoryPicker
+              label=""
               selectedCategory={category}
               onSelectCategory={setCategory}
             />

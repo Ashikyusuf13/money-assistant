@@ -59,7 +59,7 @@ export default function RegisterScreen() {
           </Text>
         </View>
 
-        {displayError && (
+        {displayError ? (
           <Card className="bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 mb-4 p-3.5 flex-row items-center gap-2.5">
             <AlertCircle size={18} color="#e11d48" />
             <View className="flex-1">
@@ -73,7 +73,7 @@ export default function RegisterScreen() {
               )}
             </View>
           </Card>
-        )}
+        ) : null}
 
         <View className="gap-4">
           <Controller
