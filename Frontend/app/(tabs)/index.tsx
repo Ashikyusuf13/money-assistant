@@ -106,9 +106,10 @@ export default function HomeScreen() {
         </View>
         <Pressable
           onPress={() => router.push('/settings')}
-          style={styles.bellBtn}
+          style={styles.profileBtn}
+          accessibilityLabel="Open Profile & Settings"
         >
-          <Bell size={20} color="#1565C0" />
+          <User size={20} color="#1565C0" strokeWidth={2.2} />
         </Pressable>
       </View>
 
@@ -530,6 +531,21 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     letterSpacing: -0.3,
   },
+  profileBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EBF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#D0E3FF',
+    shadowColor: '#1565C0',
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
   bellBtn: {
     width: 42,
     height: 42,
@@ -537,11 +553,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF2FF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1565C0',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
 
   // ── Month Selector ───────────────────────────────────────────
