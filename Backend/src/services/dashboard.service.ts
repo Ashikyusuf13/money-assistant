@@ -267,8 +267,9 @@ export async function getDashboardSummary(
   });
 
   const budgetHighlights: BudgetHighlight[] = monthlyBudgets.map((b) => {
+    const bCat = (b.category || '').toLowerCase().trim();
     const categoryTxs = currentLedgerEntries.filter(
-      (_, idx) => currentMonthTransactions[idx]?.category === b.category,
+      (_, idx) => (currentMonthTransactions[idx]?.category || '').toLowerCase().trim() === bCat,
     );
     const util = calculateBudgetUtilization(b.amount, b.alertThreshold, categoryTxs);
     return {

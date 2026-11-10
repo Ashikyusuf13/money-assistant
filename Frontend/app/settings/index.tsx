@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Pressable, Switch, Modal, Platform, KeyboardAvoidingView, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ScreenWrapper,
   Button,
@@ -95,10 +96,22 @@ export default function SettingsScreen() {
     await setBiometricEnabled(val);
   };
 
+  const queryClient = useQueryClient();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = async () => {
-    await logout();
-    setShowLogoutModal(false);
-    router.replace('/(auth)/welcome');
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      queryClient.clear();
+      setShowLogoutModal(false);
+      router.replace('/(auth)/welcome');
+    } catch {
+      setShowLogoutModal(false);
+      router.replace('/(auth)/welcome');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const currentSalary = salary?.baseMonthlySalary ?? 0;
@@ -233,10 +246,12 @@ export default function SettingsScreen() {
       {/* ─── Log Out Button ──────────────────────────────── */}
       <Pressable
         onPress={() => setShowLogoutModal(true)}
-        style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
+        style={styles.logoutPressable}
       >
-        <LogOut size={18} color="#EF4444" />
-        <Text style={styles.logoutText}>Log Out</Text>
+        <View style={styles.logoutBtnInner}>
+          <LogOut size={18} color="#DC2626" strokeWidth={2.4} />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </View>
       </Pressable>
 
       <View style={{ height: 40 }} />
@@ -436,6 +451,7 @@ export default function SettingsScreen() {
         message="Are you sure you want to log out of Money Assistant? You will need to sign in again to access your account."
         confirmTitle="Log Out"
         isDestructive
+        isLoading={isLoggingOut}
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutModal(false)}
       />
@@ -637,23 +653,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     marginLeft: 68,
   },
-  logoutBtn: {
+  logoutPressable: {
+    marginHorizontal: 16,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  logoutBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#FEE2E2',
-    marginHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#FECACA',
   },
-  logoutBtnPressed: {
-    backgroundColor: '#FCA5A5',
-  },
   logoutText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: '#DC2626',
   },

@@ -188,27 +188,29 @@ export default function TransactionsScreen() {
       </View>
 
       {/* ── Type Filter Pills ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.pillRow}
-        style={styles.pillScroll}
-      >
-        {TYPE_FILTERS.map((f) => {
-          const isSelected = selectedType === f.value;
-          return (
-            <Pressable
-              key={f.value}
-              onPress={() => setSelectedType(f.value)}
-              style={[styles.pill, isSelected && styles.pillActive]}
-            >
-              <Text style={[styles.pillLabel, isSelected && styles.pillLabelActive]}>
-                {f.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View style={{ height: 44, marginBottom: 16 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillRow}
+          style={styles.pillScroll}
+        >
+          {TYPE_FILTERS.map((f) => {
+            const isSelected = selectedType === f.value;
+            return (
+              <Pressable
+                key={f.value}
+                onPress={() => setSelectedType(f.value)}
+                style={[styles.pill, isSelected && styles.pillActive]}
+              >
+                <Text style={[styles.pillLabel, isSelected && styles.pillLabelActive]}>
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* ── Transactions List ── */}
       {isLoading ? (
@@ -240,7 +242,6 @@ export default function TransactionsScreen() {
                       style={styles.txPressable}
                     >
                       <View
-                        className="flex-row items-center justify-between w-full"
                         style={[
                           styles.txRow,
                           idx < items.length - 1 && styles.txRowBorder,
@@ -371,20 +372,26 @@ const styles = StyleSheet.create({
   },
   // Filter pills
   pillScroll: {
-    marginBottom: 16,
+    height: 44,
+    flexGrow: 0,
     width: '100%',
   },
   pillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 2,
   },
   pill: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 19,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
   },
   pillActive: {
     backgroundColor: '#1565C0',

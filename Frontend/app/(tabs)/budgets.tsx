@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -166,6 +167,14 @@ export default function BudgetsScreen() {
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
   const deleteMutation = useDeleteBudget();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+      void refetchSalary();
+      void refetchDashboard();
+    }, [refetch, refetchSalary, refetchDashboard])
+  );
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);

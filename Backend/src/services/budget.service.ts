@@ -115,8 +115,9 @@ export async function listBudgetsWithUtilization(
   });
 
   return budgets.map((b) => {
+    const bCat = (b.category || '').toLowerCase().trim();
     const categoryEntries: LedgerTransactionEntry[] = transactions
-      .filter((t) => t.category === b.category)
+      .filter((t) => (t.category || '').toLowerCase().trim() === bCat)
       .map((t) => ({
         type: t.type,
         amount: t.amount,
@@ -168,7 +169,7 @@ export async function getBudgetById(
 
   const transactions = await Transaction.find({
     userId: userObjectId,
-    category: budget.category,
+    category: { $regex: new RegExp(`^${budget.category.trim()}$`, 'i') },
     isArchived: false,
     date: { $gte: start, $lte: end },
     type: { $in: ['expense', 'refund'] },

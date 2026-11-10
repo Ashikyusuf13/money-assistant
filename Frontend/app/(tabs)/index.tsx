@@ -629,10 +629,7 @@ export default function HomeScreen() {
                       onPress={() => router.push(`/transaction/${tx._id || tx.id}`)}
                       style={styles.recentTxPressable}
                     >
-                      <View
-                        className="flex-row items-center justify-between w-full"
-                        style={styles.recentTxCard}
-                      >
+                      <View style={styles.recentTxCard}>
                         {/* Category Icon */}
                         <View style={[styles.txIconCircle, { backgroundColor: catColor + '15', borderColor: catColor + '30' }]}>
                           {renderCategoryIcon(tx.category, catColor, 18)}
