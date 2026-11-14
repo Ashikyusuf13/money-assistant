@@ -18,6 +18,7 @@ import budgetRouter from './routes/budget';
 import goalRouter from './routes/goal';
 import reportRouter from './routes/report';
 import accountRouter from './routes/account';
+import categoryRouter from './routes/category';
 import aiRouter from './routes/ai';
 import docsRouter from './routes/docs';
 
@@ -85,6 +86,7 @@ export function createApp(): Application {
   app.use('/api/v1/budgets', budgetRouter);
   app.use('/api/v1/goals', goalRouter);
   app.use('/api/v1/accounts', accountRouter);
+  app.use('/api/v1/categories', categoryRouter);
   app.use('/api/v1/reports', reportRouter);
   app.use('/api/v1/assistant', aiRouter);
   app.use('/api/v1/docs', docsRouter);

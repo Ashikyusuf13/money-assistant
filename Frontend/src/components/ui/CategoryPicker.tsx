@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import { useCategories } from '../../hooks/useCategories';
 
-export const CATEGORIES = [
+export const BASE_CATEGORIES = [
   { id: 'groceries', label: 'Groceries', color: '#10b981' },
   { id: 'dining', label: 'Dining', color: '#f59e0b' },
   { id: 'rent', label: 'Rent', color: '#ef4444' },
@@ -15,6 +17,8 @@ export const CATEGORIES = [
   { id: 'other', label: 'Other', color: '#64748b' },
 ];
 
+export const CATEGORIES = BASE_CATEGORIES;
+
 interface CategoryPickerProps {
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
@@ -28,6 +32,26 @@ export function CategoryPicker({
   label = 'Category',
   containerClassName = '',
 }: CategoryPickerProps) {
+  const { custom = [] } = useCategories();
+
+  const combinedCategories = useMemo(() => {
+    const customItems = custom.map((c) => ({
+      id: c.id,
+      label: c.label,
+      color: c.color,
+      isCustom: true,
+    }));
+
+    const standardWithoutOther = BASE_CATEGORIES.filter((c) => c.id !== 'other');
+    const otherItem = BASE_CATEGORIES.find((c) => c.id === 'other') || {
+      id: 'other',
+      label: 'Other',
+      color: '#64748b',
+    };
+
+    return [...standardWithoutOther, ...customItems, otherItem];
+  }, [custom]);
+
   return (
     <View className={`w-full ${containerClassName}`}>
       {label ? (
@@ -39,9 +63,10 @@ export function CategoryPicker({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 pb-1"
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 4 }}
       >
-        {CATEGORIES.map((cat) => {
+        {combinedCategories.map((cat) => {
           const isSelected = selectedCategory.toLowerCase() === cat.id.toLowerCase();
           return (
             <Pressable

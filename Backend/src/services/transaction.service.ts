@@ -1,5 +1,5 @@
 import { FilterQuery, Types } from 'mongoose';
-import { Account, ITransactionDocument, Transaction } from '../models';
+import { Account, ITransactionDocument, Transaction, CustomCategory } from '../models';
 import { NotFoundError } from '../errors';
 import {
   CreateTransactionInput,
@@ -138,12 +138,13 @@ export async function createTransaction(
   }
 
   // 4. Create Transaction
+  const normalizedCategory = input.category.toLowerCase().trim();
   const transaction = await Transaction.create({
     userId: userObjectId,
     type: input.type,
     amount: input.amount,
     date: txDate,
-    category: input.category.toLowerCase(),
+    category: normalizedCategory,
     description: input.description,
     accountId: accountObjectId,
     toAccountId: toAccountObjectId,
@@ -152,6 +153,36 @@ export async function createTransaction(
     notes: input.notes,
     idempotencyKey: input.idempotencyKey,
   });
+
+  // Automatically register custom categories for the user
+  const STANDARD_CATEGORIES = new Set([
+    'food',
+    'groceries',
+    'transport',
+    'shopping',
+    'bills',
+    'utilities',
+    'health',
+    'entertainment',
+    'investment',
+    'salary',
+    'bonus',
+    'transfer',
+    'refund',
+    'other',
+    'others',
+  ]);
+  if (!STANDARD_CATEGORIES.has(normalizedCategory)) {
+    try {
+      await CustomCategory.updateOne(
+        { userId: userObjectId, name: normalizedCategory },
+        { $setOnInsert: { userId: userObjectId, name: normalizedCategory } },
+        { upsert: true },
+      );
+    } catch {
+      // Ignore concurrent upsert errors
+    }
+  }
 
   // 5. Update Account Balance
   await applyBalanceEffect(

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
 } from '@/src/components/ui';
 import { useCreateTransaction } from '@/src/hooks/useTransactions';
 import { useAccounts } from '@/src/hooks/useAccounts';
+import { useCategories } from '@/src/hooks/useCategories';
 import {
   ArrowLeft,
   AlertCircle,
@@ -36,7 +37,7 @@ import {
 } from 'lucide-react-native';
 import { formatPaise } from '@/src/utils/currency';
 
-const EXPENSE_CATEGORIES = [
+const BASE_EXPENSE_CATEGORIES = [
   { id: 'food', label: 'Food & Dining', icon: Utensils, color: '#F59E0B', bg: '#FEF3C7' },
   { id: 'groceries', label: 'Groceries', icon: ShoppingCart, color: '#F97316', bg: '#FFEDD5' },
   { id: 'transport', label: 'Transport', icon: Car, color: '#0284C7', bg: '#E0F2FE' },
@@ -45,13 +46,34 @@ const EXPENSE_CATEGORIES = [
   { id: 'health', label: 'Health & Medical', icon: Heart, color: '#EF4444', bg: '#FEE2E2' },
   { id: 'entertainment', label: 'Entertainment', icon: Film, color: '#A855F7', bg: '#F3E8FF' },
   { id: 'investment', label: 'Investment', icon: TrendingUp, color: '#0D9488', bg: '#CCFBF1' },
-  { id: 'others', label: 'Other Expenses', icon: Package, color: '#64748B', bg: '#F1F5F9' },
 ];
+
+const OTHER_CATEGORY_ITEM = {
+  id: 'other',
+  label: 'Other Expenses',
+  icon: Package,
+  color: '#64748B',
+  bg: '#F1F5F9',
+};
+
+function getCategoryIconComponent(catName: string) {
+  const lower = (catName || '').toLowerCase().trim();
+  if (lower.includes('lic') || lower.includes('policy') || lower.includes('insurance') || lower.includes('sip') || lower.includes('invest') || lower.includes('mutual')) return TrendingUp;
+  if (lower.includes('food') || lower.includes('dining') || lower.includes('restaurant') || lower.includes('snack') || lower.includes('eats')) return Utensils;
+  if (lower.includes('grocery') || lower.includes('groceries') || lower.includes('mart') || lower.includes('veg')) return ShoppingCart;
+  if (lower.includes('bill') || lower.includes('eb') || lower.includes('electric') || lower.includes('recharge') || lower.includes('wifi') || lower.includes('current')) return Zap;
+  if (lower.includes('shop') || lower.includes('dress') || lower.includes('cloth')) return ShoppingBag;
+  if (lower.includes('car') || lower.includes('bike') || lower.includes('fuel') || lower.includes('travel') || lower.includes('petrol') || lower.includes('diesel')) return Car;
+  if (lower.includes('med') || lower.includes('health') || lower.includes('doctor') || lower.includes('hospital') || lower.includes('clinic')) return Heart;
+  if (lower.includes('movie') || lower.includes('tv') || lower.includes('film') || lower.includes('ott') || lower.includes('cinema')) return Film;
+  return Package;
+}
 
 export default function AddExpenseScreen() {
   const router = useRouter();
   const createMutation = useCreateTransaction();
   const { data: accounts } = useAccounts();
+  const { custom: customCategoriesList = [] } = useCategories();
 
   const [paiseAmount, setPaiseAmount] = useState(0);
   const [category, setCategory] = useState('groceries');
@@ -62,6 +84,21 @@ export default function AddExpenseScreen() {
     () => new Date().toISOString().split('T')[0]!
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Combine standard + user's saved custom categories + Other
+  const expenseCategories = useMemo(() => {
+    const customItems = customCategoriesList.map((c) => ({
+      id: c.id,
+      label: c.label,
+      icon: getCategoryIconComponent(c.id || c.label),
+      color: c.color,
+      bg: c.bg || '#F1F5F9',
+      isCustom: true,
+    }));
+    return [...BASE_EXPENSE_CATEGORIES, ...customItems, OTHER_CATEGORY_ITEM];
+  }, [customCategoriesList]);
+
+  const isOtherSelected = category === 'other' || category === 'others';
 
   const handleSubmit = async () => {
     if (createMutation.isPending) return;
@@ -77,10 +114,13 @@ export default function AddExpenseScreen() {
       return;
     }
 
+    const trimmedCustom = customCategory.trim().toLowerCase();
     const finalCategory =
-      category === 'others' && customCategory.trim()
-        ? customCategory.trim()
-        : category;
+      isOtherSelected && trimmedCustom
+        ? trimmedCustom
+        : isOtherSelected
+        ? 'other'
+        : category.toLowerCase().trim();
 
     try {
       await createMutation.mutateAsync({
@@ -139,13 +179,18 @@ export default function AddExpenseScreen() {
       <View style={styles.card}>
         <Text style={styles.cardSectionLabel}>SELECT CATEGORY</Text>
         <View style={styles.categoryGrid}>
-          {EXPENSE_CATEGORIES.map((cat) => {
-            const isSelected = category === cat.id;
+          {expenseCategories.map((cat) => {
+            const isSelected = category.toLowerCase() === cat.id.toLowerCase();
             const Icon = cat.icon;
             return (
               <Pressable
                 key={cat.id}
-                onPress={() => setCategory(cat.id)}
+                onPress={() => {
+                  setCategory(cat.id);
+                  if (cat.id !== 'other' && cat.id !== 'others') {
+                    setCustomCategory('');
+                  }
+                }}
                 style={[
                   styles.categoryChip,
                   isSelected && { borderColor: cat.color, backgroundColor: cat.bg },
@@ -172,8 +217,8 @@ export default function AddExpenseScreen() {
           })}
         </View>
 
-        {/* ── Custom Category Input Field (When 'Others' is selected) ── */}
-        {category === 'others' && (
+        {/* ── Custom Category Input Field (When 'Other' is selected) ── */}
+        {isOtherSelected && (
           <View style={styles.customCategorySection}>
             <View style={styles.customCategoryHeader}>
               <Package size={14} color="#64748B" />
@@ -182,7 +227,7 @@ export default function AddExpenseScreen() {
             <View style={styles.inputRow}>
               <TextInput
                 style={styles.textInput}
-                placeholder="e.g. Gym, Pet Care, Education, Maintenance"
+                placeholder="e.g. LIC, TV, Gym, Education, OTT"
                 placeholderTextColor="#94A3B8"
                 value={customCategory}
                 onChangeText={setCustomCategory}

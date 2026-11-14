@@ -61,47 +61,134 @@ const TYPE_FILTERS: Array<{ label: string; value: TransactionType | 'all' }> = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   food: '#D97706',
+  dining: '#D97706',
+  restaurant: '#D97706',
   groceries: '#EA580C',
+  grocery: '#EA580C',
   transport: '#0284C7',
+  travel: '#0284C7',
+  fuel: '#0284C7',
   shopping: '#DB2777',
   bills: '#CA8A04',
+  bill: '#CA8A04',
+  utilities: '#CA8A04',
   health: '#DC2626',
+  medical: '#DC2626',
+  medicine: '#DC2626',
   entertainment: '#9333EA',
+  movie: '#9333EA',
   salary: '#059669',
   income: '#059669',
+  bonus: '#059669',
   transfer: '#4F46E5',
   refund: '#0891B2',
   investment: '#0D9488',
   investments: '#0D9488',
+  lic: '#0D9488',
+  policy: '#0D9488',
+  insurance: '#0D9488',
+  other: '#64748B',
   others: '#64748B',
 };
 
+const CUSTOM_CATEGORY_PALETTE = [
+  '#6366F1', // Indigo
+  '#8B5CF6', // Purple
+  '#0D9488', // Teal
+  '#EC4899', // Pink
+  '#0284C7', // Sky
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#D946EF', // Fuchsia
+  '#06B6D4', // Cyan
+  '#F97316', // Orange
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getCategoryColor(category: string): string {
-  return CATEGORY_COLORS[category.toLowerCase()] ?? '#64748B';
+  const lower = (category || '').toLowerCase().trim();
+  if (CATEGORY_COLORS[lower]) {
+    return CATEGORY_COLORS[lower];
+  }
+  let hash = 0;
+  for (let i = 0; i < lower.length; i++) {
+    hash = (hash << 5) - hash + lower.charCodeAt(i);
+    hash |= 0;
+  }
+  return CUSTOM_CATEGORY_PALETTE[Math.abs(hash) % CUSTOM_CATEGORY_PALETTE.length]!;
+}
+
+function formatCategoryBadgeLabel(category: string): string {
+  const clean = (category || '').trim();
+  if (clean.length <= 3) {
+    return clean.toUpperCase(); // e.g. "LIC", "TV", "OTT"
+  }
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
 function renderCategoryIcon(category: string, color: string, size = 20) {
-  const cat = (category || '').toLowerCase();
+  const cat = (category || '').toLowerCase().trim();
   switch (cat) {
     case 'food':
+    case 'dining':
+    case 'restaurant':
+    case 'eats':
+    case 'snacks':
       return <Utensils size={size} color={color} strokeWidth={2.2} />;
     case 'groceries':
+    case 'grocery':
+    case 'supermarket':
+    case 'mart':
       return <ShoppingCart size={size} color={color} strokeWidth={2.2} />;
     case 'transport':
+    case 'travel':
+    case 'fuel':
+    case 'petrol':
+    case 'diesel':
+    case 'cab':
+    case 'auto':
       return <Car size={size} color={color} strokeWidth={2.2} />;
     case 'shopping':
+    case 'clothes':
+    case 'dress':
+    case 'mall':
       return <ShoppingBag size={size} color={color} strokeWidth={2.2} />;
     case 'bills':
+    case 'bill':
     case 'utilities':
+    case 'utility':
+    case 'electricity':
+    case 'eb':
+    case 'recharge':
+    case 'wifi':
+    case 'water':
       return <Zap size={size} color={color} strokeWidth={2.2} />;
     case 'health':
+    case 'medical':
+    case 'medicine':
+    case 'hospital':
+    case 'doctor':
+    case 'clinic':
+    case 'pharma':
       return <Heart size={size} color={color} strokeWidth={2.2} />;
     case 'entertainment':
+    case 'movie':
+    case 'cinema':
+    case 'theatre':
+    case 'ott':
+    case 'tv':
+    case 'netflix':
       return <Film size={size} color={color} strokeWidth={2.2} />;
     case 'salary':
+    case 'pay':
+    case 'wage':
+    case 'stipend':
       return <Briefcase size={size} color={color} strokeWidth={2.2} />;
+    case 'bonus':
     case 'income':
+    case 'incentive':
+    case 'reward':
+    case 'cashback':
       return <CircleDollarSign size={size} color={color} strokeWidth={2.2} />;
     case 'transfer':
       return <ArrowLeftRight size={size} color={color} strokeWidth={2.2} />;
@@ -109,6 +196,13 @@ function renderCategoryIcon(category: string, color: string, size = 20) {
       return <RotateCcw size={size} color={color} strokeWidth={2.2} />;
     case 'investment':
     case 'investments':
+    case 'lic':
+    case 'policy':
+    case 'insurance':
+    case 'sip':
+    case 'mutual fund':
+    case 'stocks':
+    case 'gold':
       return <TrendingUp size={size} color={color} strokeWidth={2.2} />;
     default:
       return <Package size={size} color={color} strokeWidth={2.2} />;
@@ -188,7 +282,7 @@ export default function TransactionsScreen() {
       </View>
 
       {/* ── Type Filter Pills ── */}
-      <View style={{ height: 44, marginBottom: 16 }}>
+      <View style={{ height: 44, maxHeight: 44, marginBottom: 16 }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -267,7 +361,7 @@ export default function TransactionsScreen() {
                           <View style={styles.txMeta}>
                             <View style={[styles.categoryBadge, { backgroundColor: catColor + '15' }]}>
                               <Text style={[styles.categoryBadgeText, { color: catColor }]}>
-                                {tx.category}
+                                {formatCategoryBadgeLabel(tx.category)}
                               </Text>
                             </View>
                             <View style={styles.walletBadge}>
@@ -373,6 +467,7 @@ const styles = StyleSheet.create({
   // Filter pills
   pillScroll: {
     height: 44,
+    maxHeight: 44,
     flexGrow: 0,
     width: '100%',
   },
@@ -381,9 +476,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 2,
+    height: 44,
+    maxHeight: 44,
   },
   pill: {
     height: 38,
+    maxHeight: 38,
     paddingHorizontal: 16,
     borderRadius: 19,
     backgroundColor: '#FFFFFF',

@@ -175,7 +175,7 @@ export default function ReportsScreen() {
           remainingSalaryRupees: remainingMonthlySalary / 100,
           retentionPercentage: savingsRate,
         } : undefined,
-        categories: (categoryData?.categories ?? []).map((c) => ({
+        categories: (categoryData?.categories ?? []).map((c: any) => ({
           category: c.category.replace(/_/g, ' '),
           spentRupees: c.amount / 100,
           percentage: c.percentage,
@@ -454,7 +454,7 @@ export default function ReportsScreen() {
           <ActivityIndicator size="small" color="#1565C0" style={{ padding: 20 }} />
         ) : categoryData?.categories && categoryData.categories.length > 0 ? (
           <View style={{ gap: 12 }}>
-            {categoryData.categories.map((cat, idx) => {
+            {categoryData.categories.map((cat: any, idx: number) => {
               const colors = ['#1565C0', '#0284C7', '#059669', '#D97706', '#DC2626', '#7C3AED'];
               const barColor = colors[idx % colors.length];
 
@@ -667,6 +667,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   presetsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingTop: 4,
   },

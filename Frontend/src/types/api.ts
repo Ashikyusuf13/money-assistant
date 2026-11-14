@@ -221,14 +221,38 @@ export interface PeriodReportData {
   }>;
 }
 
+export interface CategoryReportItem {
+  category: string;
+  currentSpendPaise?: number;
+  amount: number;
+  previousSpendPaise?: number;
+  deltaPaise?: number;
+  percentageChange?: number;
+  monthOverMonthChangePercentage?: number;
+  percentageOfCurrentTotal?: number;
+  percentage: number;
+  transactionCount?: number;
+}
+
 export interface CategoryReportData {
   month: string;
-  categories: Array<{
-    category: string;
-    amount: number;
-    percentage: number;
-    transactionCount: number;
-    monthOverMonthChangePercentage?: number;
-  }>;
-  totalExpense: number;
+  totalSpendPaise?: number;
+  totalExpense?: number;
+  categories: CategoryReportItem[];
 }
+
+export interface CategoryItem {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  bg?: string;
+  isCustom: boolean;
+}
+
+export interface CategoriesResponse {
+  standard: CategoryItem[];
+  custom: CategoryItem[];
+  all: CategoryItem[];
+}
+

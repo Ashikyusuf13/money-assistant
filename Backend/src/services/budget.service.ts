@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { Budget, IBudgetDocument, Transaction, ITransactionDocument } from '../models';
+import { Budget, IBudgetDocument, Transaction, ITransactionDocument, CustomCategory } from '../models';
 import { ConflictError, NotFoundError } from '../errors';
 import {
   CreateBudgetInput,
@@ -75,6 +75,35 @@ export async function createBudget(
     notes: input.notes,
   });
 
+  const STANDARD_CATEGORIES = new Set([
+    'food',
+    'groceries',
+    'transport',
+    'shopping',
+    'bills',
+    'utilities',
+    'health',
+    'entertainment',
+    'investment',
+    'salary',
+    'bonus',
+    'transfer',
+    'refund',
+    'other',
+    'others',
+  ]);
+  if (!STANDARD_CATEGORIES.has(category)) {
+    try {
+      await CustomCategory.updateOne(
+        { userId: userObjectId, name: category },
+        { $setOnInsert: { userId: userObjectId, name: category } },
+        { upsert: true },
+      );
+    } catch {
+      // Ignore concurrent upsert errors
+    }
+  }
+
   return budget;
 }
 
@@ -114,10 +143,24 @@ export async function listBudgetsWithUtilization(
     type: { $in: ['expense', 'refund'] },
   });
 
+  const specificBudgetCategories = new Set(
+    budgets
+      .map((b) => (b.category || '').toLowerCase().trim())
+      .filter((cat) => cat !== 'other' && cat !== 'others'),
+  );
+
   return budgets.map((b) => {
     const bCat = (b.category || '').toLowerCase().trim();
+    const isOtherBudget = bCat === 'other' || bCat === 'others';
+
     const categoryEntries: LedgerTransactionEntry[] = transactions
-      .filter((t) => (t.category || '').toLowerCase().trim() === bCat)
+      .filter((t) => {
+        const tCat = (t.category || '').toLowerCase().trim();
+        if (isOtherBudget) {
+          return tCat === 'other' || tCat === 'others' || !specificBudgetCategories.has(tCat);
+        }
+        return tCat === bCat;
+      })
       .map((t) => ({
         type: t.type,
         amount: t.amount,
@@ -167,9 +210,29 @@ export async function getBudgetById(
 
   const { start, end } = getMonthBounds(budget.month);
 
+  const bCat = (budget.category || '').toLowerCase().trim();
+  const isOtherBudget = bCat === 'other' || bCat === 'others';
+
+  let categoryQuery: Record<string, unknown>;
+  if (isOtherBudget) {
+    const otherBudgets = await Budget.find({
+      userId: userObjectId,
+      month: budget.month,
+      category: { $nin: ['other', 'others'] },
+    });
+    const specificCats = otherBudgets.map((b) => b.category.toLowerCase().trim());
+    if (specificCats.length > 0) {
+      categoryQuery = { $nin: specificCats };
+    } else {
+      categoryQuery = { $exists: true };
+    }
+  } else {
+    categoryQuery = { $regex: new RegExp(`^${budget.category.trim()}$`, 'i') };
+  }
+
   const transactions = await Transaction.find({
     userId: userObjectId,
-    category: { $regex: new RegExp(`^${budget.category.trim()}$`, 'i') },
+    category: categoryQuery,
     isArchived: false,
     date: { $gte: start, $lte: end },
     type: { $in: ['expense', 'refund'] },

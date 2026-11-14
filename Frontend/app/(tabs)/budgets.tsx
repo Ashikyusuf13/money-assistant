@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
+  TextInput,
   StyleSheet,
 } from 'react-native';
 import {
@@ -69,35 +70,111 @@ const CATEGORY_META: Record<string, { color: string; bg: string }> = {
   travel:        { color: '#0D9488', bg: '#CCFBF1' },
   investment:    { color: '#0D9488', bg: '#CCFBF1' },
   other:         { color: '#64748B', bg: '#F1F5F9' },
+  others:        { color: '#64748B', bg: '#F1F5F9' },
 };
 
+const CUSTOM_BUDGET_PALETTE = [
+  { color: '#6366F1', bg: '#EEF2FF' }, // Indigo
+  { color: '#8B5CF6', bg: '#F5F3FF' }, // Purple
+  { color: '#0D9488', bg: '#CCFBF1' }, // Teal
+  { color: '#EC4899', bg: '#FCE7F3' }, // Pink
+  { color: '#0284C7', bg: '#E0F2FE' }, // Sky
+  { color: '#10B981', bg: '#D1FAE5' }, // Emerald
+  { color: '#F59E0B', bg: '#FEF3C7' }, // Amber
+  { color: '#D946EF', bg: '#FAE8FF' }, // Fuchsia
+];
+
 function getCategoryMeta(cat: string) {
-  return CATEGORY_META[cat.toLowerCase()] ?? { color: '#64748B', bg: '#F1F5F9' };
+  const lower = (cat || '').toLowerCase().trim();
+  if (CATEGORY_META[lower]) {
+    return CATEGORY_META[lower];
+  }
+  let hash = 0;
+  for (let i = 0; i < lower.length; i++) {
+    hash = (hash << 5) - hash + lower.charCodeAt(i);
+    hash |= 0;
+  }
+  return CUSTOM_BUDGET_PALETTE[Math.abs(hash) % CUSTOM_BUDGET_PALETTE.length]!;
+}
+
+function formatBudgetCategoryName(name: string): string {
+  const clean = (name || '').trim();
+  if (clean.length <= 3) {
+    return clean.toUpperCase(); // e.g. "LIC", "TV", "OTT", "GYM"
+  }
+  return clean
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 function renderBudgetCategoryIcon(category: string, color: string, size = 20) {
-  const cat = (category || '').toLowerCase();
+  const cat = (category || '').toLowerCase().trim();
   switch (cat) {
     case 'food':
+    case 'dining':
+    case 'restaurant':
+    case 'eats':
+    case 'snacks':
       return <Utensils size={size} color={color} strokeWidth={2.2} />;
     case 'groceries':
+    case 'grocery':
+    case 'supermarket':
+    case 'mart':
       return <ShoppingCart size={size} color={color} strokeWidth={2.2} />;
     case 'transport':
+    case 'travel':
+    case 'fuel':
+    case 'petrol':
+    case 'diesel':
+    case 'cab':
+    case 'auto':
       return <Car size={size} color={color} strokeWidth={2.2} />;
     case 'shopping':
+    case 'clothes':
+    case 'dress':
+    case 'mall':
       return <ShoppingBag size={size} color={color} strokeWidth={2.2} />;
     case 'bills':
+    case 'bill':
     case 'utilities':
+    case 'utility':
+    case 'electricity':
+    case 'eb':
+    case 'recharge':
+    case 'wifi':
+    case 'water':
       return <Zap size={size} color={color} strokeWidth={2.2} />;
     case 'health':
+    case 'medical':
+    case 'medicine':
+    case 'hospital':
+    case 'doctor':
+    case 'clinic':
+    case 'pharma':
       return <Heart size={size} color={color} strokeWidth={2.2} />;
     case 'entertainment':
+    case 'movie':
+    case 'cinema':
+    case 'theatre':
+    case 'ott':
+    case 'tv':
+    case 'netflix':
       return <Film size={size} color={color} strokeWidth={2.2} />;
     case 'education':
+    case 'school':
+    case 'college':
+    case 'books':
       return <BookOpen size={size} color={color} strokeWidth={2.2} />;
-    case 'travel':
-      return <Car size={size} color={color} strokeWidth={2.2} />;
     case 'investment':
+    case 'investments':
+    case 'lic':
+    case 'policy':
+    case 'insurance':
+    case 'sip':
+    case 'mutual fund':
+    case 'stocks':
+    case 'gold':
       return <TrendingUp size={size} color={color} strokeWidth={2.2} />;
     default:
       return <Package size={size} color={color} strokeWidth={2.2} />;
@@ -183,6 +260,7 @@ export default function BudgetsScreen() {
 
   // Form values
   const [category, setCategory] = useState('groceries');
+  const [customCategory, setCustomCategory] = useState('');
   const [amountPaise, setAmountPaise] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -199,9 +277,10 @@ export default function BudgetsScreen() {
     setSelectedMonth(`${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`);
   };
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = (prefillCat = 'groceries') => {
     setEditingBudget(null);
-    setCategory('groceries');
+    setCategory(prefillCat);
+    setCustomCategory('');
     setAmountPaise(0);
     setErrorMsg(null);
     setShowAddModal(true);
@@ -210,6 +289,7 @@ export default function BudgetsScreen() {
   const handleOpenEdit = (b: Budget) => {
     setEditingBudget(b);
     setCategory(b.category);
+    setCustomCategory('');
     setAmountPaise(b.amount);
     setErrorMsg(null);
     setShowAddModal(true);
@@ -218,6 +298,7 @@ export default function BudgetsScreen() {
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingBudget(null);
+    setCustomCategory('');
     setErrorMsg(null);
   };
 
@@ -227,6 +308,15 @@ export default function BudgetsScreen() {
       return;
     }
     setErrorMsg(null);
+
+    const isOther = category === 'other' || category === 'others';
+    const finalCategory =
+      isOther && customCategory.trim()
+        ? customCategory.trim().toLowerCase()
+        : isOther
+        ? 'other'
+        : category.toLowerCase().trim();
+
     try {
       if (editingBudget) {
         await updateMutation.mutateAsync({
@@ -235,7 +325,7 @@ export default function BudgetsScreen() {
         });
       } else {
         await createMutation.mutateAsync({
-          category,
+          category: finalCategory,
           amount: amountPaise,
           month: selectedMonth,
         });
@@ -243,6 +333,7 @@ export default function BudgetsScreen() {
       handleCloseModal();
       setAmountPaise(0);
       void refetch();
+      void refetchDashboard();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to save budget');
     }
@@ -296,6 +387,18 @@ export default function BudgetsScreen() {
 
   // 8. Remaining Account Balance = Total Income - Total Expenses (Distinct from remaining budget!)
   const remainingAccountBalance = Math.max(0, totalIncome - totalSpent);
+
+  // Check if any expenses occurred in categories without explicit budget
+  const budgetedCategoryNames = new Set(
+    budgetList.map((b) => (b.category || '').toLowerCase().trim())
+  );
+  const hasOtherBudget = budgetedCategoryNames.has('other') || budgetedCategoryNames.has('others');
+
+  const unbudgetedList = (!hasOtherBudget && dashboard?.categoryBreakdown)
+    ? dashboard.categoryBreakdown.filter(
+        (cb) => !budgetedCategoryNames.has((cb.category || '').toLowerCase().trim()) && cb.spentPaise > 0
+      )
+    : [];
 
   return (
     <ScreenWrapper
@@ -435,7 +538,7 @@ export default function BudgetsScreen() {
         <View style={styles.skeletonContainer}>
           <SkeletonList count={4} />
         </View>
-      ) : budgetList.length > 0 ? (
+      ) : budgetList.length > 0 || unbudgetedList.length > 0 ? (
         <View style={{ gap: 12, width: '100%' }}>
           {budgetList.map((b) => {
             const isExceeded = b.utilizationPercentage > 100;
@@ -455,7 +558,7 @@ export default function BudgetsScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={styles.catTopRow}>
                     <Text style={styles.catName}>
-                      {b.category.charAt(0).toUpperCase() + b.category.slice(1)}
+                      {formatBudgetCategoryName(b.category)}
                     </Text>
                     {isWarning && (
                       <View
@@ -530,6 +633,55 @@ export default function BudgetsScreen() {
             );
           })}
 
+          {/* Unbudgeted Active Expenses */}
+          {unbudgetedList.length > 0 && (
+            <View style={{ marginTop: 8, gap: 10 }}>
+              <View style={styles.unbudgetedHeader}>
+                <Text style={styles.unbudgetedHeaderText}>
+                  Other Expenses Without Limit
+                </Text>
+                <Text style={styles.sectionCount}>{unbudgetedList.length} categories</Text>
+              </View>
+
+              {unbudgetedList.map((item) => {
+                const meta = getCategoryMeta(item.category);
+                return (
+                  <View key={item.category} style={styles.catCard}>
+                    <View style={[styles.catIconCircle, { backgroundColor: meta.bg }]}>
+                      {renderBudgetCategoryIcon(item.category, meta.color, 20)}
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.catTopRow}>
+                        <Text style={styles.catName}>
+                          {formatBudgetCategoryName(item.category)}
+                        </Text>
+                        <View style={[styles.catBadge, { backgroundColor: '#F1F5F9' }]}>
+                          <Text style={[styles.catBadgeText, { color: '#64748B' }]}>
+                            No Limit
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.catSpent}>{formatPaise(item.spentPaise)}</Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '500' }}>
+                        {item.percentageOfTotal}% of total expenses
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      onPress={() => handleOpenCreate(item.category)}
+                      style={styles.setLimitBtn}
+                    >
+                      <Plus size={12} color="#FFFFFF" strokeWidth={2.8} />
+                      <Text style={styles.setLimitBtnText}>Set Limit</Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
           {/* Generous bottom spacing so cards are 100% visible above floating navigation */}
           <View style={{ height: 110 }} />
         </View>
@@ -540,13 +692,13 @@ export default function BudgetsScreen() {
             title="No Budgets Defined"
             description="Create category spending limits for this month to receive real-time threshold warnings."
             actionTitle="Create Budget"
-            onAction={handleOpenCreate}
+            onAction={() => handleOpenCreate()}
           />
         </View>
       )}
 
       {/* ── FAB: Add Budget ────────────────────────────────────────────────── */}
-      <Pressable onPress={handleOpenCreate} style={styles.fab}>
+      <Pressable onPress={() => handleOpenCreate()} style={styles.fab}>
         <Plus size={28} color="#ffffff" />
       </Pressable>
 
@@ -595,9 +747,27 @@ export default function BudgetsScreen() {
               {!editingBudget && (
                 <CategoryPicker
                   selectedCategory={category}
-                  onSelectCategory={setCategory}
+                  onSelectCategory={(cat) => {
+                    setCategory(cat);
+                    if (cat !== 'other' && cat !== 'others') {
+                      setCustomCategory('');
+                    }
+                  }}
                   containerClassName="mb-4"
                 />
+              )}
+
+              {!editingBudget && (category === 'other' || category === 'others') && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.customCatLabel}>Custom Category Name (Optional)</Text>
+                  <TextInput
+                    style={styles.customCatInput}
+                    placeholder="e.g. LIC, TV, Gym (or leave blank for all Other expenses)"
+                    placeholderTextColor="#94A3B8"
+                    value={customCategory}
+                    onChangeText={setCustomCategory}
+                  />
+                </View>
               )}
 
               <CurrencyInput
@@ -991,5 +1161,57 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
     fontSize: 12,
     fontWeight: '600',
+  },
+  customCatLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  customCatInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  unbudgetedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  unbudgetedHeaderText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  sectionCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  setLimitBtn: {
+    backgroundColor: '#1565C0',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  setLimitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

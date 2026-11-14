@@ -266,11 +266,23 @@ export async function getDashboardSummary(
     month,
   });
 
+  const specificBudgetCategories = new Set(
+    monthlyBudgets
+      .map((b) => (b.category || '').toLowerCase().trim())
+      .filter((cat) => cat !== 'other' && cat !== 'others'),
+  );
+
   const budgetHighlights: BudgetHighlight[] = monthlyBudgets.map((b) => {
     const bCat = (b.category || '').toLowerCase().trim();
-    const categoryTxs = currentLedgerEntries.filter(
-      (_, idx) => (currentMonthTransactions[idx]?.category || '').toLowerCase().trim() === bCat,
-    );
+    const isOtherBudget = bCat === 'other' || bCat === 'others';
+
+    const categoryTxs = currentLedgerEntries.filter((_, idx) => {
+      const tCat = (currentMonthTransactions[idx]?.category || '').toLowerCase().trim();
+      if (isOtherBudget) {
+        return tCat === 'other' || tCat === 'others' || !specificBudgetCategories.has(tCat);
+      }
+      return tCat === bCat;
+    });
     const util = calculateBudgetUtilization(b.amount, b.alertThreshold, categoryTxs);
     return {
       category: b.category,

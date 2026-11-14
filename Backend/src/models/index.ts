@@ -24,3 +24,7 @@ export type { IGoal, IGoalDocument } from './Goal';
 
 export { GoalContribution } from './GoalContribution';
 export type { IGoalContribution, IGoalContributionDocument } from './GoalContribution';
+
+export { CustomCategory } from './CustomCategory';
+export type { ICustomCategory, ICustomCategoryDocument } from './CustomCategory';
+

@@ -82,10 +82,12 @@ export function useCreateTransaction() {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['salary'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       void queryClient.refetchQueries({ queryKey: ['dashboard'] });
       void queryClient.refetchQueries({ queryKey: ['transactions'] });
       void queryClient.refetchQueries({ queryKey: ['budgets'] });
       void queryClient.refetchQueries({ queryKey: ['salary'] });
+      void queryClient.refetchQueries({ queryKey: ['categories'] });
     },
   });
 }
@@ -103,10 +105,12 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['salary'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       void queryClient.refetchQueries({ queryKey: ['dashboard'] });
       void queryClient.refetchQueries({ queryKey: ['transactions'] });
       void queryClient.refetchQueries({ queryKey: ['budgets'] });
       void queryClient.refetchQueries({ queryKey: ['salary'] });
+      void queryClient.refetchQueries({ queryKey: ['categories'] });
     },
   });
 }

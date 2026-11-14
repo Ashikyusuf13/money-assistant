@@ -119,12 +119,16 @@ export default function AddTransactionScreen() {
       }
     }
 
+    const trimmedCustom = customCategory.trim().toLowerCase();
+    const isOtherSelected = category === 'other' || category === 'others';
     const finalCategory =
       type === 'transfer'
         ? 'transfer'
-        : (category === 'other' || category === 'others') && customCategory.trim()
-        ? customCategory.trim()
-        : category;
+        : isOtherSelected && trimmedCustom
+        ? trimmedCustom
+        : isOtherSelected
+        ? 'other'
+        : category.toLowerCase().trim();
 
     try {
       await createMutation.mutateAsync({
@@ -634,6 +638,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   accountScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   accountChip: {
